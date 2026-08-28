@@ -20,7 +20,7 @@ async def strat_handler(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="🎬 Відкрити Peekflix",
-            web_app=WebAppInfo(url="https://example.com")
+            web_app=WebAppInfo(url="https://peekflix-9rgovtaoy-b4rul1x.vercel.app")
         )]
     ])
 

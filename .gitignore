@@ -1,7 +1,10 @@
 # Python
 bot/.env
+backend/.env
 bot/__pycache__/
+backend/__pycache__/
 .venv/
+*.db
 
 # Node / React
 frontend/node_modules/

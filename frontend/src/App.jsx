@@ -5,7 +5,7 @@ const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
 function App() {
   const [username, setUsername] = useState('гість');
-  const [userId, setUserId] = useState(12345);
+  const [userId, setUserId] = useState(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [addedIds, setAddedIds] = useState([]);

@@ -19,7 +19,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://peekflix-9rgovtaoy-b4rul1x.vercel.app"],
+    allow_origins=["http://localhost:5173", "https://peekflix.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

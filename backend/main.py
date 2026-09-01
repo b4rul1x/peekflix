@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models
 from schemas import MovieCreate
+from fastapi.middleware.cors import CORSMiddleware
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -15,6 +16,14 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "https://peekflix-9rgovtaoy-b4rul1x.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():

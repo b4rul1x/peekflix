@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://peekflix-production.up.railway.app';
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
 function App() {

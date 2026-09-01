@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import httpx
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models
@@ -50,6 +50,14 @@ async def search_movies(query: str):
 
 @app.post("/movies")
 def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.Movie).filter(
+        models.Movie.tmdb_id == movie.tmdb_id,
+        models.Movie.user_id == movie.user_id
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=409, detail="Цей фільм вже є у вашому списку")
+
     new_movie = models.Movie(
         tmdb_id=movie.tmdb_id,
         title=movie.title,

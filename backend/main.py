@@ -74,3 +74,14 @@ def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
 def get_user_movies(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).all()
     return movies
+
+@app.delete("/movies/{movie_id}")
+def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Фільм не знайдено")
+
+    db.delete(movie)
+    db.commit()
+    return {"detail": "Фільм успішно видалено"}

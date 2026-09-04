@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-const API_URL = 'https://peekflix-production.up.railway.app';
+const API_URL = import.meta.env.DEV
+  ? 'http://127.0.0.1:8000'
+  : 'https://peekflix-production.up.railway.app';
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
 function App() {
@@ -93,6 +95,19 @@ const handleTabChange = (tab) => {
   }
 };
 
+const handleDeleteMovie = async (movieId) => {
+  const response = await fetch(`${API_URL}/movies/${movieId}`, {
+    method: 'DELETE'
+  });
+
+  if (!response.ok) {
+    console.error('Не вдалось видалити фільм:', response.status);
+    return;
+  }
+
+  setMyMovies((prev) => prev.filter((movie) => movie.id !== movieId));
+};
+
   return (
     <div style={{ padding: '20px' }}>
       <h1>🎬 Peekflix</h1>
@@ -170,10 +185,11 @@ const handleTabChange = (tab) => {
                   style={{ width: '60px', borderRadius: '4px' }}
                 />
               )}
-              <div>
+              <div style={{ flex: 1 }}>
                 <strong>{movie.title}</strong>
                 <p style={{ margin: 0, opacity: 0.7 }}>{movie.status}</p>
               </div>
+              <button onClick={() => handleDeleteMovie(movie.id)}>🗑️ Видалити</button>
             </div>
           ))}
         </div>

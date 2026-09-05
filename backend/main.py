@@ -85,3 +85,39 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     db.delete(movie)
     db.commit()
     return {"detail": "Фільм успішно видалено"}
+
+@app.get("/movie/{tmdb_id}")
+async def get_movie_details(tmdb_id: int):
+    async with httpx.AsyncClient() as client:
+        details_response = await client.get(
+            f"https://api.themoviedb.org/3/movie/{tmdb_id}",
+            params={"api_key": TMDB_API_KEY, "language": "uk-UA"},
+        )
+        credits_response = await client.get(
+            f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits",
+            params={"api_key": TMDB_API_KEY},
+        )
+
+    details = details_response.json()
+    credits = credits_response.json()
+
+    director = next(
+        (person["name"] for person in credits.get("crew", []) if person["job"] == "Director"),
+        None,
+    )
+    cast = [person["name"] for person in credits.get("cast", [])[:5]]
+
+    return {
+        "tmdb_id": details.get("id"),
+        "title": details.get("title"),
+        "overview": details.get("overview"),
+        "poster_path": details.get("poster_path"),
+        "release_date": details.get("release_date"),
+        "runtime": details.get("runtime"),
+        "genres": [genre["name"] for genre in details.get("genres", [])],
+        "countries": [country["name"] for country in details.get("production_countries", [])],
+        "vote_average": details.get("vote_average"),
+        "director": director,
+        "cast": cast,
+    }
+

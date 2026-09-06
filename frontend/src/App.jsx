@@ -6,12 +6,12 @@ const API_URL = import.meta.env.DEV
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
 const STATUSES = {
-  watching: 'Дивлюся',
-  planned: 'Заплановано',
-  watched: 'Переглянуто',
-  dropped: 'Покинуто',
-  paused: 'Відкладено',
-  favorite: 'Улюблене',
+  watching: { label: 'Дивлюся', icon: 'visibility' },
+  planned: { label: 'Заплановано', icon: 'bookmark' },
+  watched: { label: 'Переглянуто', icon: 'check_circle' },
+  dropped: { label: 'Покинуто', icon: 'cancel' },
+  paused: { label: 'Відкладено', icon: 'pause_circle' },
+  favorite: { label: 'Улюблене', icon: 'favorite' },
 };
 
 function App() {
@@ -155,81 +155,113 @@ const handleChangeStatus = async(movieId, newStatus) => {
     <div style={{ padding: '20px' }}>
       {selectedMovie ? (
         <div>
-          <button onClick={() => setSelectedMovie(null)}>← Назад</button>
+          <button className="back-button" onClick={() => setSelectedMovie(null)}>
+            <span className="material-symbols-outlined">arrow_back</span>
+            Назад
+          </button>
 
-          {selectedMovie.poster_path && (
-            <img
-              src={`${TMDB_IMAGE_URL}${selectedMovie.poster_path}`}
-              alt={selectedMovie.title}
-              style={{ width: '150px', borderRadius: '8px', marginTop: '12px' }}
-            />
-          )}
+          <div className="movie-header">
+            <div className="poster-column">
+              {selectedMovie.poster_path && (
+                <img
+                  className="movie-poster"
+                  src={`${TMDB_IMAGE_URL}${selectedMovie.poster_path}`}
+                  alt={selectedMovie.title}
+                />
+              )}
+            </div>
 
-          <h2>{selectedMovie.title}</h2>
+            <div className="movie-info">
+              <div className="title-row">
+                <div className="movie-title">{selectedMovie.title}</div>
+                <span className="rating-badge">
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>star</span>
+                  {selectedMovie.vote_average?.toFixed(1)}
+                </span>
+              </div>
 
-          <div style={{ marginBottom: '12px' }}>
-            <strong>{selectedMovie.status ? 'Статус:' : 'Додати зі статусом:'}</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-              {Object.entries(STATUSES).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() =>
-                    selectedMovie.status
-                      ? handleChangeStatus(selectedMovie.id, key)
-                      : handleAddMovie(selectedMovie, key)
-                  }
-                  style={{
-                    fontWeight: selectedMovie.status === key ? 'bold' : 'normal',
-                    backgroundColor: selectedMovie.status === key ? '#ddd' : 'transparent',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              <div className="info-row">
+                <span className="info-label">Рік випуску</span>
+                <div className="chip-group">
+                  <span className="chip">{selectedMovie.release_date?.slice(0, 4)}</span>
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Країна</span>
+                <div className="chip-group">
+                  {selectedMovie.countries?.map((country) => (
+                    <span key={country} className="chip">{country}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Жанр</span>
+                <div className="chip-group">
+                  {selectedMovie.genres?.map((genre) => (
+                    <span key={genre} className="chip">{genre}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Тривалість</span>
+                <div className="chip-group">
+                  <span className="chip">{selectedMovie.runtime} хв</span>
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Режисер</span>
+                <div className="chip-group">
+                  <span className="chip">{selectedMovie.director}</span>
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-label">У головних ролях</span>
+                <div className="chip-group">
+                  {selectedMovie.cast?.map((actor) => (
+                    <span key={actor} className="chip">{actor}</span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          <p><strong>Рік випуску:</strong> {selectedMovie.release_date?.slice(0, 4)}</p>
-          <p><strong>Країна:</strong> {selectedMovie.countries?.join(', ')}</p>
-          <p><strong>Жанр:</strong> {selectedMovie.genres?.join(', ')}</p>
-          <p><strong>Тривалість:</strong> {selectedMovie.runtime} хв</p>
-          <p><strong>Прем'єра:</strong> {selectedMovie.release_date}</p>
-          <p><strong>Рейтинг TMDB:</strong> {selectedMovie.vote_average?.toFixed(1)}</p>
-          <p><strong>Режисер:</strong> {selectedMovie.director}</p>
-          <p><strong>У головних ролях:</strong> {selectedMovie.cast?.join(', ')}</p>
-          <p>{selectedMovie.overview}</p>
+          <div className="status-row">
+            {Object.entries(STATUSES).map(([key, { label, icon }]) => (
+              <button
+                key={key}
+                className={`status-button ${selectedMovie.status === key ? 'active' : ''}`}
+                onClick={() =>
+                  selectedMovie.status
+                    ? handleChangeStatus(selectedMovie.id, key)
+                    : handleAddMovie(selectedMovie, key)
+                }
+              >
+                <span className="material-symbols-outlined">{icon}</span>
+                <span className="status-button-label">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <p className="overview-text-full">{selectedMovie.overview}</p>
         </div>
       ) : (
         <>
-          <h1>🎬 Peekflix</h1>
-          <p>Привіт, {username}!</p>
-
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-            <button
-              onClick={() => handleTabChange('search')}
-              style={{ fontWeight: activeTab === 'search' ? 'bold' : 'normal' }}
-            >
-              🔍 Пошук
-            </button>
-            <button
-              onClick={() => handleTabChange('mylist')}
-              style={{ fontWeight: activeTab === 'mylist' ? 'bold' : 'normal' }}
-            >
-              📋 Мої фільми
-            </button>
-          </div>
+          <div className="app-header">Peekflix</div>
 
           {activeTab === 'search' && (
             <div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <div className="search-bar">
+                <button className="search-icon-button" onClick={handleSearch}>
+                  <span className="material-symbols-outlined">search</span>
+                </button>
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   placeholder="Назва фільму..."
-                  style={{ flex: 1, padding: '8px' }}
+                  className="search-input"
                 />
-                <button onClick={handleSearch}>Шукати</button>
               </div>
 
               {results.map((movie) => {
@@ -238,28 +270,31 @@ const handleChangeStatus = async(movieId, newStatus) => {
                 return (
                   <div
                     key={movie.id}
+                    className="list-card"
                     onClick={() => handleOpenDetails(movie.id)}
-                    style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', cursor: 'pointer' }}
                   >
                     {movie.poster_path && (
                       <img
+                        className="list-card-poster"
                         src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
                         alt={movie.title}
-                        style={{ width: '60px', borderRadius: '4px' }}
                       />
                     )}
-                    <div style={{ flex: 1 }}>
-                      <strong>{movie.title}</strong>
-                      <p style={{ margin: 0, opacity: 0.7 }}>{movie.release_date}</p>
+                    <div className="list-card-info">
+                      <div className="list-card-title">{movie.title}</div>
+                      <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
                     </div>
                     <button
+                      className={`icon-button ${isAdded ? 'icon-button-active' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAddMovie(movie);
                       }}
                       disabled={isAdded}
                     >
-                      {isAdded ? '✅ Додано' : '➕ Додати'}
+                      <span className="material-symbols-outlined">
+                        {isAdded ? 'check_circle' : 'add_circle'}
+                      </span>
                     </button>
                   </div>
                 );
@@ -274,32 +309,66 @@ const handleChangeStatus = async(movieId, newStatus) => {
               {myMovies.map((movie) => (
                 <div
                   key={movie.id}
+                  className="list-card"
                   onClick={() => handleOpenDetails(movie.tmdb_id, movie)}
-                  style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', cursor: 'pointer' }}
                 >
                   {movie.poster_path && (
                     <img
+                      className="list-card-poster"
                       src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
                       alt={movie.title}
-                      style={{ width: '60px', borderRadius: '4px' }}
                     />
                   )}
-                  <div style={{ flex: 1 }}>
-                    <strong>{movie.title}</strong>
-                    <p style={{ margin: 0, opacity: 0.7 }}>{movie.status}</p>
+                  <div className="list-card-info">
+                    <div className="list-card-title">{movie.title}</div>
+                    <div className="list-card-meta">
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>
+                        {STATUSES[movie.status]?.icon}
+                      </span>{' '}
+                      {STATUSES[movie.status]?.label}
+                    </div>
                   </div>
                   <button
+                    className="icon-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteMovie(movie.id);
                     }}
                   >
-                    🗑️ Видалити
+                    <span className="material-symbols-outlined">delete</span>
                   </button>
                 </div>
               ))}
             </div>
           )}
+
+          {activeTab === 'profile' && (
+            <div className="placeholder-text">Скоро тут буде профіль</div>
+          )}
+
+          <div className="bottom-nav">
+            <button
+              className={`nav-item ${activeTab === 'search' ? 'active' : ''}`}
+              onClick={() => handleTabChange('search')}
+            >
+              <span className="material-symbols-outlined">search</span>
+              <span>Пошук</span>
+            </button>
+            <button
+              className={`nav-item ${activeTab === 'mylist' ? 'active' : ''}`}
+              onClick={() => handleTabChange('mylist')}
+            >
+              <span className="material-symbols-outlined">bookmarks</span>
+              <span>Мої фільми</span>
+            </button>
+            <button
+              className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('profile')}
+            >
+              <span className="material-symbols-outlined">person</span>
+              <span>Профіль</span>
+            </button>
+          </div>
         </>
       )}
     </div>

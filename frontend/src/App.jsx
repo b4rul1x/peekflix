@@ -5,6 +5,15 @@ const API_URL = import.meta.env.DEV
   : 'https://peekflix-production.up.railway.app';
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
+const STATUSES = {
+  watching: 'Дивлюся',
+  planned: 'Заплановано',
+  watched: 'Переглянуто',
+  dropped: 'Покинуто',
+  paused: 'Відкладено',
+  favorite: 'Улюблене',
+};
+
 function App() {
   const [username, setUsername] = useState('гість');
   const [userId, setUserId] = useState(null);
@@ -48,14 +57,12 @@ function App() {
     setResults(data);
   };
 
-  const handleAddMovie = async (movie) => {
+  const handleAddMovie = async (movie, status = 'watched') => {
     const response = await fetch(`${API_URL}/movies`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tmdb_id: movie.id,
+        tmdb_id: movie.tmdb_id ?? movie.id,
         title: movie.title,
         poster_path: movie.poster_path,
         user_id: userId,
@@ -64,7 +71,7 @@ function App() {
   });
 
   if (response.status === 409) {
-    setAddedIds((prev) => [...prev, movie.id]);
+    setAddedIds((prev) => [...prev, movie.tmdb_id ?? movie.id]);
     return;
   }
 
@@ -73,12 +80,12 @@ function App() {
     return;
   }
   
-  setAddedIds((prev) => [...prev, movie.id]);
+  const savedMovie = await response.json();
+  setAddedIds((prev) => [...prev, savedMovie.tmdb_id]);
+  setSelectedMovie((prev) => (prev ? { ...prev, id: savedMovie.id, status: savedMovie.status } : prev));
 };
 
-const handleOpenDetails = async (tmdbId) => {
-  console.log('Клікнули на фільм з id:', tmdbId);
-
+const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
   const response = await fetch(`${API_URL}/movie/${tmdbId}`);
 
   if (!response.ok) {
@@ -87,6 +94,11 @@ const handleOpenDetails = async (tmdbId) => {
   }
 
   const data = await response.json();
+
+  if (myMovieRecord) {
+    data.id = myMovieRecord.id;
+    data.status = myMovieRecord.status;
+  }
   setSelectedMovie(data);
 };
 
@@ -124,6 +136,21 @@ const handleDeleteMovie = async (movieId) => {
   setMyMovies((prev) => prev.filter((movie) => movie.id !== movieId));
 };
 
+const handleChangeStatus = async(movieId, newStatus) => {
+  const response = await fetch(`${API_URL}/movies/${movieId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus }),
+  });
+
+  if (!response.ok) {
+    console.error('Не вдалось змінити статус:', response.status);
+    return;
+  }
+  
+  setSelectedMovie((prev) => ({ ...prev, status: newStatus }));
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       {selectedMovie ? (
@@ -140,14 +167,36 @@ const handleDeleteMovie = async (movieId) => {
 
           <h2>{selectedMovie.title}</h2>
 
+          <div style={{ marginBottom: '12px' }}>
+            <strong>{selectedMovie.status ? 'Статус:' : 'Додати зі статусом:'}</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+              {Object.entries(STATUSES).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() =>
+                    selectedMovie.status
+                      ? handleChangeStatus(selectedMovie.id, key)
+                      : handleAddMovie(selectedMovie, key)
+                  }
+                  style={{
+                    fontWeight: selectedMovie.status === key ? 'bold' : 'normal',
+                    backgroundColor: selectedMovie.status === key ? '#ddd' : 'transparent',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <p><strong>Рік випуску:</strong> {selectedMovie.release_date?.slice(0, 4)}</p>
-          <p><strong>Країна:</strong> {selectedMovie.countries.join(', ')}</p>
-          <p><strong>Жанр:</strong> {selectedMovie.genres.join(', ')}</p>
+          <p><strong>Країна:</strong> {selectedMovie.countries?.join(', ')}</p>
+          <p><strong>Жанр:</strong> {selectedMovie.genres?.join(', ')}</p>
           <p><strong>Тривалість:</strong> {selectedMovie.runtime} хв</p>
           <p><strong>Прем'єра:</strong> {selectedMovie.release_date}</p>
           <p><strong>Рейтинг TMDB:</strong> {selectedMovie.vote_average?.toFixed(1)}</p>
           <p><strong>Режисер:</strong> {selectedMovie.director}</p>
-          <p><strong>У головних ролях:</strong> {selectedMovie.cast.join(', ')}</p>
+          <p><strong>У головних ролях:</strong> {selectedMovie.cast?.join(', ')}</p>
           <p>{selectedMovie.overview}</p>
         </div>
       ) : (
@@ -225,7 +274,8 @@ const handleDeleteMovie = async (movieId) => {
               {myMovies.map((movie) => (
                 <div
                   key={movie.id}
-                  style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}
+                  onClick={() => handleOpenDetails(movie.tmdb_id, movie)}
+                  style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', cursor: 'pointer' }}
                 >
                   {movie.poster_path && (
                     <img
@@ -238,7 +288,14 @@ const handleDeleteMovie = async (movieId) => {
                     <strong>{movie.title}</strong>
                     <p style={{ margin: 0, opacity: 0.7 }}>{movie.status}</p>
                   </div>
-                  <button onClick={() => handleDeleteMovie(movie.id)}>🗑️ Видалити</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteMovie(movie.id);
+                    }}
+                  >
+                    🗑️ Видалити
+                  </button>
                 </div>
               ))}
             </div>

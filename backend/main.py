@@ -8,6 +8,7 @@ from database import engine, Base, get_db
 import models
 from schemas import MovieCreate
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -24,6 +25,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class StatusUpdate(BaseModel):
+    status: str
 
 @app.get("/")
 def root():
@@ -69,6 +73,18 @@ def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_movie)
     return new_movie
+
+@app.patch("/movies/{movie_id}/status")
+def update_movie_status(movie_id: int, status_update: StatusUpdate, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Фільм не знайдено")
+
+    movie.status = status_update.status
+    db.commit()
+    db.refresh(movie)
+    return movie    
 
 @app.get("/movies/{user_id}")
 def get_user_movies(user_id: int, db: Session = Depends(get_db)):

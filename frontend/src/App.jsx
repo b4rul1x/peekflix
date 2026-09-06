@@ -16,7 +16,7 @@ const STATUSES = {
 
 function App() {
   const [username, setUsername] = useState('гість');
-  const [userId, setUserId] = useState(null);
+  const [userId, setUserId] = useState(12345);
   const [activeTab, setActiveTab] = useState('search');
 
   const [query, setQuery] = useState('');

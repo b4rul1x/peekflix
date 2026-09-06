@@ -24,7 +24,8 @@ body {
 .movie-title {
   font-size: 22px;
   font-weight: 600;
-  margin: 12px 0 4px;
+  line-height: 1;
+  margin: 0;
 }
 
 .movie-meta {
@@ -42,6 +43,7 @@ body {
   border-radius: 999px;
   font-weight: 600;
   color: var(--accent);
+  line-height: 1;
 }
 
 .status-row {
@@ -342,4 +344,49 @@ body {
 .search-input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .movie-header {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .poster-column {
+    width: 100%;
+    max-width: 220px;
+    text-align: center;
+  }
+
+  .movie-poster {
+    width: 100%;
+  }
+
+  .movie-info {
+    width: 100%;
+    text-align: center;
+  }
+
+  .title-row {
+    justify-content: center;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .chip-group {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .status-row {
+    flex-wrap: wrap;
+  }
+
+  .status-button {
+    min-width: calc(33.333% - 6px);
+  }
 }

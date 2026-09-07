@@ -16,7 +16,7 @@ const STATUSES = {
 
 function App() {
   const [username, setUsername] = useState('гість');
-  const [userId, setUserId] = useState(12345);
+  const [userId, setUserId] = useState(null);
   const [activeTab, setActiveTab] = useState('search');
 
   const [query, setQuery] = useState('');
@@ -26,6 +26,8 @@ function App() {
   const [myMovies, setMyMovies] = useState([]);
 
   const [selectedMovie, setSelectedMovie] = useState(null)
+
+  const [filterStatus, setFilterStatus] = useState('watching');
 
   useEffect(() => {
     const tg = window.Telegram.WebApp;
@@ -150,6 +152,8 @@ const handleChangeStatus = async(movieId, newStatus) => {
   
   setSelectedMovie((prev) => ({ ...prev, status: newStatus }));
   }
+
+const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
 
   return (
     <div style={{ padding: '20px' }}>
@@ -304,41 +308,63 @@ const handleChangeStatus = async(movieId, newStatus) => {
 
           {activeTab === 'mylist' && (
             <div>
-              {myMovies.length === 0 && <p>Список поки порожній</p>}
+              <div className="status-filter-bar">
+                {Object.entries(STATUSES).map(([key, { label, icon }]) => {
+                  const isActive = filterStatus === key;
+                  return (
+                    <button
+                      key={key}
+                      className={`filter-chip ${isActive ? 'active' : ''}`}
+                      onClick={() => setFilterStatus(key)}
+                      title={label}
+                    >
+                      <span className="material-symbols-outlined">{icon}</span>
+                      {isActive && <span className="chip-label">{label}</span>}
+                    </button>
+                  );
+                })}
+              </div>
 
-              {myMovies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="list-card"
-                  onClick={() => handleOpenDetails(movie.tmdb_id, movie)}
-                >
-                  {movie.poster_path && (
-                    <img
-                      className="list-card-poster"
-                      src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
-                      alt={movie.title}
-                    />
-                  )}
-                  <div className="list-card-info">
-                    <div className="list-card-title">{movie.title}</div>
-                    <div className="list-card-meta">
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>
-                        {STATUSES[movie.status]?.icon}
-                      </span>{' '}
-                      {STATUSES[movie.status]?.label}
-                    </div>
-                  </div>
-                  <button
-                    className="icon-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteMovie(movie.id);
-                    }}
+              {filteredMovies.length === 0 ? (
+                <p className="placeholder-text">Нічого не знайдено у цій категорії</p>
+              ) : (
+                filteredMovies.map((movie) => (
+                  <div
+                    key={movie.id}
+                    className="list-card"
+                    onClick={() => handleOpenDetails(movie.tmdb_id, movie)}
                   >
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-              ))}
+                    {movie.poster_path && (
+                      <img
+                        className="list-card-poster"
+                        src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                        alt={movie.title}
+                      />
+                    )}
+                    <div className="list-card-info">
+                      <div className="list-card-title">{movie.title}</div>
+                      <div className="list-card-meta">
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '14px', verticalAlign: 'middle' }}
+                        >
+                          {STATUSES[movie.status]?.icon}
+                        </span>{' '}
+                        {STATUSES[movie.status]?.label}
+                      </div>
+                    </div>
+                    <button
+                      className="icon-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteMovie(movie.id);
+                      }}
+                    >
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           )}
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Text
 from database import Base
 
 class Movie(Base):
@@ -10,3 +10,4 @@ class Movie(Base):
     poster_path = Column(String)
     user_id = Column(Integer, index=True)
     status = Column(String, default="watched")
+    user_rating = Column(Integer, nullable=True)

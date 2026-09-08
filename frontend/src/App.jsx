@@ -29,6 +29,8 @@ function App() {
 
   const [filterStatus, setFilterStatus] = useState('watching');
 
+  const [showRatingPopover, setShowRatingPopover] = useState(false);
+
   useEffect(() => {
     const tg = window.Telegram.WebApp;
     tg.ready();
@@ -100,6 +102,7 @@ const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
   if (myMovieRecord) {
     data.id = myMovieRecord.id;
     data.status = myMovieRecord.status;
+    data.user_rating = myMovieRecord.user_rating;
   }
   setSelectedMovie(data);
 };
@@ -154,6 +157,26 @@ const handleChangeStatus = async(movieId, newStatus) => {
   }
 
 const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
+
+const handleSaveRating = async (movieId, newRating) => {
+  const response = await fetch(`${API_URL}/movies/${movieId}/details`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_rating: newRating }),
+  });
+
+  if (!response.ok) {
+    console.error('Не вдалось оновити оцінку:', response.status);
+    return;
+  }
+
+  const updatedMovie = await response.json();
+  setSelectedMovie((prev) => ({
+    ...prev,
+    user_rating: updatedMovie.user_rating,
+  }));
+  loadMyMovies();
+};
 
   return (
     <div style={{ padding: '20px' }}>
@@ -245,6 +268,42 @@ const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus)
               </button>
             ))}
           </div>
+
+          {selectedMovie.id && (
+            <div className="user-review-section">
+              <div className="info-row">
+                <span className="info-label">Моя оцінка</span>
+                <button 
+                  className="user-rating-badge"
+                  onClick={() => setShowRatingPopover(!showRatingPopover)}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#ffc107' }}>star</span>
+                  <span>{selectedMovie.user_rating ? `${selectedMovie.user_rating} / 10` : 'Оцінити'}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--text-muted)' }}>
+                    {showRatingPopover ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+              </div>
+
+              {showRatingPopover && (
+                <div className="stars-responsive-bar">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                    <button
+                      key={star}
+                      className={`star-chip ${selectedMovie.user_rating >= star ? 'filled' : ''}`}
+                      onClick={() => {
+                        handleSaveRating(selectedMovie.id, star);
+                        setShowRatingPopover(false);
+                      }}
+                    >
+                      <span className="material-symbols-outlined star-icon">star</span>
+                      <span className="star-num">{star}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="overview-text-full">{selectedMovie.overview}</p>
         </div>

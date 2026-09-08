@@ -6,7 +6,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models
-from schemas import MovieCreate
+from schemas import MovieCreate, MovieDetailsUpdate
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -84,7 +84,21 @@ def update_movie_status(movie_id: int, status_update: StatusUpdate, db: Session 
     movie.status = status_update.status
     db.commit()
     db.refresh(movie)
-    return movie    
+    return movie
+
+@app.patch("/movies/{movie_id}/details")
+def update_movie_details(movie_id: int, details: MovieDetailsUpdate, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Фільм не знайдено")
+
+    if details.user_rating is not None:
+        movie.user_rating = details.user_rating
+
+    db.commit()
+    db.refresh(movie)
+    return movie
 
 @app.get("/movies/{user_id}")
 def get_user_movies(user_id: int, db: Session = Depends(get_db)):
@@ -136,4 +150,3 @@ async def get_movie_details(tmdb_id: int):
         "director": director,
         "cast": cast,
     }
-

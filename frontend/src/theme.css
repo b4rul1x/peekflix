@@ -399,15 +399,14 @@ body {
   margin-bottom: 16px;
   width: 100%;
   overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .status-filter-bar::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
-/* Базовий чип (неактивний: круглий, тільки з іконкою) */
 .filter-chip {
   display: flex;
   align-items: center;
@@ -415,7 +414,7 @@ body {
   gap: 6px;
   
   height: 40px;
-  width: 40px; /* Квадратний/круглий у неактивному стані */
+  width: 40px;
   padding: 0;
   border-radius: 20px;
   
@@ -440,12 +439,11 @@ body {
   color: var(--text);
 }
 
-/* Активний чип: розгортається до ОДНАКОВОЇ фіксованої ширини для всіх */
 .filter-chip.active {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
-  width: 140px; /* Фіксована ширина під найдовшу назву (наприклад, "Переглянуто") */
+  width: 140px;
   padding: 0 10px;
 }
 
@@ -464,4 +462,113 @@ body {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.user-review-section {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  box-sizing: border-box;
+}
+
+.user-review-section .info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.user-rating-badge:hover {
+  background: var(--surface-hover);
+}
+
+.stars-responsive-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 4px 0;
+  animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (max-width: 600px) {
+  .user-review-section .info-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stars-responsive-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.star-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.star-icon {
+  font-size: 14px;
+  font-variation-settings: 'FILL' 0;
+}
+
+.star-chip.filled {
+  color: #ffc107;
+  border-color: #ffc107;
+  background: rgba(255, 193, 7, 0.1);
+  font-weight: 600;
+}
+
+.star-chip.filled .star-icon {
+  font-variation-settings: 'FILL' 1;
+}
+
+.star-num {
+  font-size: 12px;
+  font-family: inherit;
 }

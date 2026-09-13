@@ -9,6 +9,7 @@ import models
 from schemas import MovieCreate, MovieDetailsUpdate
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from tmdb import tmdb_get
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -149,4 +150,85 @@ async def get_movie_details(tmdb_id: int):
         "vote_average": details.get("vote_average"),
         "director": director,
         "cast": cast,
+    }
+
+@app.get("/home/trending")
+async def get_trending(page: int = 1):
+    data = await tmdb_get("/trending/movie/week", {"language": "uk-UA", "page": page})
+    return data
+
+@app.get("/home/top-rated")
+async def get_top_rated(page: int = 1):
+    data = await tmdb_get("/movie/top_rated", {"language": "uk-UA", "page": page})
+    return data
+
+@app.get("/home/now-playing")
+async def get_now_playing(page: int = 1):
+    data = await tmdb_get("/movie/now_playing", {"language": "uk-UA", "page": page})
+    return data
+
+@app.get("/home/continue-watching/{user_id}")
+def get_continue_watching(user_id, db: Session = Depends(get_db)):
+    movies = db.query(models.Movie).filter(
+        models.Movie.user_id == user_id,
+        models.Movie.status == "watching"
+    ).all()
+    return movies
+
+@app.get("/home/genres")
+async def get_genres():
+    data = await tmdb_get("/genre/movie/list", {"language": "uk-UA"})
+    return data["genres"]
+
+@app.get("/home/by-genre")
+async def get_by_genre(genre_id: int, page: int = 1):
+    data = await tmdb_get("/discover/movie", {
+        "language": "uk-UA",
+        "with_genres": genre_id,
+        "page": page,
+        "sort_by": "popylarity.desc",
+    })
+    return data
+
+@app.get("/home/recommendations/{user_id}")
+async def get_recommendations(user_id: int, db: Session = Depends(get_db)):
+    rated_movies = db.query(models.Movie).filter(
+        models.Movie.user_id == user_id,
+        models.Movie.user_rating >= 7,
+    ).order_by(models.Movie.id.desc()).limit(5).all()
+
+    if not rated_movies:
+        return
+
+    added_ids = {m.tmdb_id for m in db.query(models.Movie).filter(models.Movie.user_id == user_id).all()}
+
+    seen_ids = set()
+    recommendations = []
+
+    for movie in rated_movies:
+        data = await tmdb_get(f"/movie/{movie.tmdb_id}/recommendations")
+        for result in data.get("results", []):
+            tmdb_id = result["id"]
+            if tmdb_id in added_ids or tmdb_id in seen_ids:
+                continue
+            seen_ids.add(tmdb_id)
+            recommendations.append(result)
+
+    return recommendations[:20]
+
+@app.get("/home/similar/{user_id}")
+async def get_similar(user_id: int, db: Session = Depends(get_db)):
+    top_movie = db.query(models.Movie).filter(
+        models.Movie.user_id == user_id,
+        models.Movie.user_rating != None,
+    ).order_by(models.Movie.user_rating.desc(), models.Movie.id.desc()).first()
+
+    if not top_movie:
+        return {"source_title": None, "results": []}
+
+    data = await tmdb_get(f"/movie/{top_movie.tmdb_id}/similar")
+
+    return {
+        "source_title": top_movie.title,
+        "results": data.get("results", [])
     }

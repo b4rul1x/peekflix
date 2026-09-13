@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const API_URL = import.meta.env.DEV
   ? 'http://127.0.0.1:8000'
@@ -14,6 +14,41 @@ const STATUSES = {
   favorite: { label: 'Улюблене', icon: 'favorite' },
 };
 
+function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll }) {
+  return (
+    <div className="home-row">
+      <div className="row-header">
+        <div className="row-title">{title}</div>
+        <button className="row-see-all" onClick={onSeeAll}>
+          Усі
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+            chevron_right
+          </span>
+        </button>
+      </div>
+
+      <div className="row-scroll">
+        {movies.slice(0, 10).map((movie, index) => (
+          <div
+            key={movie.tmdb_id ?? movie.id ?? index}
+            className="poster-card"
+            onClick={() => onMovieClick(movie)}
+          >
+            {getPoster(movie) && (
+              <img
+                className="poster-card-image"
+                src={`${TMDB_IMAGE_URL}${getPoster(movie)}`}
+                alt={getTitle(movie)}
+              />
+            )}
+            <div className="poster-card-title">{getTitle(movie)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [username, setUsername] = useState('гість');
   const [userId, setUserId] = useState(null);
@@ -24,6 +59,23 @@ function App() {
   const [addedIds, setAddedIds] = useState([]);
 
   const [myMovies, setMyMovies] = useState([]);
+  const [continueWatching, setContinueWatching] = useState([]);
+  const [trending, setTrending] = useState([]);
+  const [topRated, setTopRated] = useState([]);
+  const [nowPlaying, setNowPlaying] = useState([]);
+
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [expandedMovies, setExpandedMovies] = useState([]);
+  const [expandedPage, setExpandedPage] = useState(1);
+  const [expandedHasMore, setExpandedHasMore] = useState(false);
+  const [expandedLoading, setExpandedLoading] = useState(false);
+  const [expandedScrollPosition, setExpandedScrollPosition] = useState(0);
+  const previousMovieIdRef = useRef(null);
+
+  const [genreMovies, setGenreMovies] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [similarMovies, setSimilarMovies] = useState([]);
+  const [similarSourceTitle, setSimilarSourceTitle] = useState(null);
 
   const [selectedMovie, setSelectedMovie] = useState(null)
 
@@ -46,6 +98,52 @@ function App() {
       loadMyMovies();
     }
   }, [userId]);
+
+  useEffect(() => {
+    loadTrending();
+    loadTopRated();
+    loadNowPlaying();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      loadContinueWatching();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadGenreMovies();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      loadRecommendations();
+      loadSimilar();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (selectedMovie) {
+      if (previousMovieIdRef.current !== selectedMovie.tmdb_id) {
+        window.scrollTo(0, 0);
+        previousMovieIdRef.current = selectedMovie.tmdb_id;
+      }
+    } else {
+      previousMovieIdRef.current = null;
+      if (expandedCategory) {
+        window.scrollTo(0, expandedScrollPosition);
+      }
+    }
+  }, [selectedMovie, expandedCategory]);
+
+  const GENRE = { id: 28, title: 'Бойовики' };
+
+  const CATEGORY_ENDPOINTS = {
+    trending: { title: 'Зараз популярне', url: '/home/trending' },
+    topRated: { title: 'Топ за рейтингом', url: '/home/top-rated' },
+    nowPlaying: { title: 'Новинки', url: '/home/now-playing' },
+    genre: { title: GENRE.title, url: `/home/by-genre?genre_id=${GENRE.id}` },
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -121,6 +219,151 @@ const loadMyMovies = async () => {
   setAddedIds(data.map((movie) => movie.tmdb_id));
 };
 
+const loadTrending = async () => {
+  const response = await fetch(`${API_URL}/home/trending`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити популярне:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setTrending(data.results);
+};
+
+const loadTopRated = async () => {
+  const response = await fetch(`${API_URL}/home/top-rated`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити топ за рейтингом:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setTopRated(data.results);
+};
+
+const loadNowPlaying = async () => {
+  const response = await fetch(`${API_URL}/home/now-playing`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити новинки:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setNowPlaying(data.results);
+};
+
+const loadContinueWatching = async () => {
+  const response = await fetch(`${API_URL}/home/continue-watching/${userId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити "Продовжити перегляд":', response.status);
+    return;
+  }
+  const data = await response.json();
+  setContinueWatching(data);
+};
+
+const loadGenreMovies = async () => {
+  const response = await fetch(`${API_URL}/home/by-genre?genre_id=${GENRE.id}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити жанр:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setGenreMovies(data.results);
+};
+
+const loadRecommendations = async () => {
+  const response = await fetch(`${API_URL}/home/recommendations/${userId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити рекомендації:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setRecommendations(data);
+};
+
+const loadSimilar = async () => {
+  const response = await fetch(`${API_URL}/home/similar/${userId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити "Схоже на":', response.status);
+    return;
+  }
+  const data = await response.json();
+  setSimilarSourceTitle(data.source_title);
+  setSimilarMovies(data.results);
+};
+
+const loadExpandedPage = async (key, page) => {
+  const category = CATEGORY_ENDPOINTS[key];
+  setExpandedLoading(true);
+
+  const separator = category.url.includes('?') ? '&' : '?';
+  const response = await fetch(`${API_URL}${category.url}${separator}page=${page}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити список:', response.status);
+    setExpandedLoading(false);
+    return;
+  }
+
+  const data = await response.json();
+  setExpandedMovies((prev) => {
+    const existingIds = new Set(prev.map((m) => m.tmdb_id ?? m.id));
+    const newMovies = data.results.filter((m) => !existingIds.has(m.tmdb_id ?? m.id));
+    return [...prev, ...newMovies];
+  });
+  setExpandedPage(page);
+  setExpandedHasMore(page < data.total_pages);
+  setExpandedLoading(false);
+};
+
+const handleOpenExpanded = (key) => {
+  setExpandedCategory(key);
+
+  if (key === 'continueWatching') {
+    setExpandedMovies(continueWatching);
+    setExpandedHasMore(false);
+    return;
+  }
+
+  if (key === 'recommendations') {
+    setExpandedMovies(recommendations);
+    setExpandedHasMore(false);
+    return;
+  }
+
+  if (key === 'similar') {
+    setExpandedMovies(similarMovies);
+    setExpandedHasMore(false);
+    return;
+  }
+
+  setExpandedMovies([]);
+  setExpandedHasMore(false);
+  loadExpandedPage(key, 1);
+};
+
+const getExpandedTitle = (key) => {
+  if (key === 'continueWatching') return 'Продовжити перегляд';
+  if (key === 'recommendations') return 'Рекомендації для вас';
+  if (key === 'similar') return `Схоже на ${similarSourceTitle}`;
+  return CATEGORY_ENDPOINTS[key].title;
+};
+
+const handleLoadMoreExpanded = () => {
+  loadExpandedPage(expandedCategory, expandedPage + 1);
+};
+
+const handleCloseExpanded = () => {
+  setExpandedCategory(null);
+};
+
+const handleExpandedMovieClick = (movie) => {
+  setExpandedScrollPosition(window.scrollY);
+
+  if (expandedCategory === 'continueWatching') {
+    handleOpenDetails(movie.tmdb_id, movie);
+  } else {
+    handleOpenDetails(movie.id);
+  }
+};
+
 const handleTabChange = (tab) => {
   setActiveTab(tab);
   if (tab === 'mylist') {
@@ -154,6 +397,8 @@ const handleChangeStatus = async(movieId, newStatus) => {
   }
   
   setSelectedMovie((prev) => ({ ...prev, status: newStatus }));
+  loadMyMovies();
+  loadContinueWatching();
   }
 
 const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
@@ -307,7 +552,50 @@ const handleSaveRating = async (movieId, newRating) => {
 
           <p className="overview-text-full">{selectedMovie.overview}</p>
         </div>
-      ) : (
+      ) : expandedCategory ? (
+          <div>
+            <div className="expanded-header">
+              <button className="back-button" onClick={handleCloseExpanded}>
+                <span className="material-symbols-outlined">arrow_back</span>
+                Назад
+              </button>
+
+              <div className="app-header">
+                {getExpandedTitle(expandedCategory)}
+              </div>
+            </div>
+
+            <div className="expanded-grid">
+              {expandedMovies.map((movie, index) => (
+                <div
+                  key={movie.tmdb_id ?? movie.id ?? index}
+                  className="poster-card"
+                  onClick={() => handleExpandedMovieClick(movie)}
+                >
+                  {movie.poster_path && (
+                    <img
+                      className="poster-card-image"
+                      src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                      alt={movie.title}
+                    />
+                  )}
+                  <div className="poster-card-title">{movie.title}</div>
+                </div>
+              ))}
+            </div>
+
+            {expandedHasMore && (
+              <button
+                className="row-see-all"
+                style={{ margin: '16px auto', display: 'block' }}
+                onClick={handleLoadMoreExpanded}
+                disabled={expandedLoading}
+              >
+                {expandedLoading ? 'Завантаження...' : 'Завантажити ще'}
+              </button>
+            )}
+          </div>
+        ) : (
         <>
           <div className="app-header">Peekflix</div>
 
@@ -327,41 +615,114 @@ const handleSaveRating = async (movieId, newRating) => {
                 />
               </div>
 
-              {results.map((movie) => {
-                const isAdded = addedIds.includes(movie.id);
+              {results.length > 0 ? (
+                results.map((movie) => {
+                  const isAdded = addedIds.includes(movie.id);
 
-                return (
-                  <div
-                    key={movie.id}
-                    className="list-card"
-                    onClick={() => handleOpenDetails(movie.id)}
-                  >
-                    {movie.poster_path && (
-                      <img
-                        className="list-card-poster"
-                        src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
-                        alt={movie.title}
-                      />
-                    )}
-                    <div className="list-card-info">
-                      <div className="list-card-title">{movie.title}</div>
-                      <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
-                    </div>
-                    <button
-                      className={`icon-button ${isAdded ? 'icon-button-active' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddMovie(movie);
-                      }}
-                      disabled={isAdded}
+                  return (
+                    <div
+                      key={movie.id}
+                      className="list-card"
+                      onClick={() => handleOpenDetails(movie.id)}
                     >
-                      <span className="material-symbols-outlined">
-                        {isAdded ? 'check_circle' : 'add_circle'}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
+                      {movie.poster_path && (
+                        <img
+                          className="list-card-poster"
+                          src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                          alt={movie.title}
+                        />
+                      )}
+                      <div className="list-card-info">
+                        <div className="list-card-title">{movie.title}</div>
+                        <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
+                      </div>
+                      <button
+                        className={`icon-button ${isAdded ? 'icon-button-active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddMovie(movie);
+                        }}
+                        disabled={isAdded}
+                      >
+                        <span className="material-symbols-outlined">
+                          {isAdded ? 'check_circle' : 'add_circle'}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  {continueWatching.length > 0 && (
+                    <HomeRow
+                      title="Продовжити перегляд"
+                      movies={continueWatching}
+                      onMovieClick={(movie) => handleOpenDetails(movie.tmdb_id, movie)}
+                      getPoster={(movie) => movie.poster_path}
+                      getTitle={(movie) => movie.title}
+                      onSeeAll={() => handleOpenExpanded('continueWatching')}
+                    />
+                  )}
+
+                  <HomeRow
+                    title="Зараз популярне"
+                    movies={trending}
+                    onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                    getPoster={(movie) => movie.poster_path}
+                    getTitle={(movie) => movie.title}
+                    onSeeAll={() => handleOpenExpanded('trending')}
+                  />
+
+                  <HomeRow
+                    title="Топ за рейтингом"
+                    movies={topRated}
+                    onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                    getPoster={(movie) => movie.poster_path}
+                    getTitle={(movie) => movie.title}
+                    onSeeAll={() => handleOpenExpanded('topRated')}
+                  />
+
+                  <HomeRow
+                    title="Новинки"
+                    movies={nowPlaying}
+                    onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                    getPoster={(movie) => movie.poster_path}
+                    getTitle={(movie) => movie.title}
+                    onSeeAll={() => handleOpenExpanded('nowPlaying')}
+                  />
+
+                  <HomeRow
+                    title={GENRE.title}
+                    movies={genreMovies}
+                    onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                    getPoster={(movie) => movie.poster_path}
+                    getTitle={(movie) => movie.title}
+                    onSeeAll={() => handleOpenExpanded('genre')}
+                  />
+
+                  {recommendations.length > 0 && (
+                    <HomeRow
+                      title="Рекомендації для вас"
+                      movies={recommendations}
+                      onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                      getPoster={(movie) => movie.poster_path}
+                      getTitle={(movie) => movie.title}
+                      onSeeAll={() => handleOpenExpanded('recommendations')}
+                    />
+                  )}
+
+                  {similarMovies.length > 0 && (
+                    <HomeRow
+                      title={`Схоже на ${similarSourceTitle}`}
+                      movies={similarMovies}
+                      onMovieClick={(movie) => handleOpenDetails(movie.id)}
+                      getPoster={(movie) => movie.poster_path}
+                      getTitle={(movie) => movie.title}
+                      onSeeAll={() => handleOpenExpanded('similar')}
+                    />
+                  )}
+                </>
+              )}
             </div>
           )}
 

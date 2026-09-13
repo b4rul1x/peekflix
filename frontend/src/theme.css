@@ -572,3 +572,98 @@ body {
   font-size: 12px;
   font-family: inherit;
 }
+
+.home-row {
+  margin-bottom: 24px;
+}
+
+.row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.row-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.row-see-all {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.row-see-all:hover {
+  color: var(--accent);
+}
+
+.row-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 4px;
+}
+
+.row-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.poster-card {
+  flex-shrink: 0;
+  width: 110px;
+  cursor: pointer;
+}
+
+.poster-card-image {
+  width: 110px;
+  height: 165px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+  background: var(--surface);
+}
+
+.poster-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expanded-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.expanded-grid .poster-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.expanded-grid .poster-card-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  display: block;
+}
+
+.expanded-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding: 8px 0;
+}

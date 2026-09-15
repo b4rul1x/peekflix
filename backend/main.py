@@ -39,7 +39,8 @@ async def search_movies(query: str):
     url = "https://api.themoviedb.org/3/search/movie"
     params = {
         "api_key": TMDB_API_KEY,
-        "query": query
+        "query": query,
+        "language": "uk-UA",
     }
 
     async with httpx.AsyncClient() as client:

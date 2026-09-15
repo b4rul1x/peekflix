@@ -168,7 +168,7 @@ function App() {
         title: movie.title,
         poster_path: movie.poster_path,
         user_id: userId,
-        status: 'watched',
+        status: status,
       }),
   });
 

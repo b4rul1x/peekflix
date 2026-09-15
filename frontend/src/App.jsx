@@ -86,6 +86,8 @@ function App() {
   useEffect(() => {
     const tg = window.Telegram.WebApp;
     tg.ready();
+    tg.expand();
+    tg.disableVerticalSwipes();
 
     if (tg.initDataUnsafe?.user) {
       setUsername(tg.initDataUnsafe.user.first_name);

@@ -15,6 +15,11 @@ body {
   margin: 0;
 }
 
+html, body {
+  overscroll-behavior-y: none;
+  height: 100%;
+}
+
 .movie-poster {
   width: 220px;
   border-radius: var(--radius);

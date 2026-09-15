@@ -186,7 +186,7 @@ async def get_by_genre(genre_id: int, page: int = 1):
         "language": "uk-UA",
         "with_genres": genre_id,
         "page": page,
-        "sort_by": "popylarity.desc",
+        "sort_by": "popularity.desc",
     })
     return data
 

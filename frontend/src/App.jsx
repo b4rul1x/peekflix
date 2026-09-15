@@ -199,10 +199,12 @@ const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
 
   const data = await response.json();
 
-  if (myMovieRecord) {
-    data.id = myMovieRecord.id;
-    data.status = myMovieRecord.status;
-    data.user_rating = myMovieRecord.user_rating;
+  const record = myMovieRecord ?? myMovies.find((m) => m.tmdb_id === tmdbId);
+
+  if (record) {
+    data.id = record.id;
+    data.status = record.status;
+    data.user_rating = record.user_rating;
   }
   setSelectedMovie(data);
 };

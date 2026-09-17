@@ -58,6 +58,7 @@ function App() {
   const [results, setResults] = useState([]);
   const [addedIds, setAddedIds] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [openSearchMenuId, setOpenSearchMenuId] = useState(null);
 
   const [myMovies, setMyMovies] = useState([]);
   const [continueWatching, setContinueWatching] = useState([]);
@@ -148,11 +149,14 @@ function App() {
   }, [selectedMovie, expandedCategory]);
 
   useEffect(() => {
-    if (openMenuId === null) return;
-    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId === null && openSearchMenuId === null) return;
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+      setOpenSearchMenuId(null);
+    };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [openMenuId]);
+  }, [openMenuId, openSearchMenuId]);
 
   const GENRE = { id: 28, title: 'Бойовики' };
 
@@ -187,23 +191,25 @@ function App() {
         poster_path: movie.poster_path,
         user_id: userId,
         status: status,
-      }),
-  });
+        }),
+    });
 
-  if (response.status === 409) {
-    setAddedIds((prev) => [...prev, movie.tmdb_id ?? movie.id]);
-    return;
-  }
+    if (response.status === 409) {
+      setAddedIds((prev) => [...prev, movie.tmdb_id ?? movie.id]);
+      return;
+    }
 
-  if (!response.ok) {
-    console.error('Не вдалось додати фільм:', response.status);
-    return;
-  }
-  
-  const savedMovie = await response.json();
-  setAddedIds((prev) => [...prev, savedMovie.tmdb_id]);
-  setSelectedMovie((prev) => (prev ? { ...prev, id: savedMovie.id, status: savedMovie.status } : prev));
-};
+    if (!response.ok) {
+      console.error('Не вдалось додати фільм:', response.status);
+      return;
+    }
+    
+    const savedMovie = await response.json();
+    setAddedIds((prev) => [...prev, savedMovie.tmdb_id]);
+    setMyMovies((prev) => [...prev, savedMovie]);
+    setSelectedMovie((prev) => prev && (prev.tmdb_id ?? prev.id) === savedMovie.tmdb_id ? { ...prev, id: savedMovie.id, status: savedMovie.status } : prev);
+    loadContinueWatching();
+  };
 
 const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
   const response = await fetch(`${API_URL}/movie/${tmdbId}`);
@@ -656,18 +662,39 @@ const handleSaveRating = async (movieId, newRating) => {
                         <div className="list-card-title">{movie.title}</div>
                         <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
                       </div>
-                      <button
-                        className={`icon-button ${isAdded ? 'icon-button-active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddMovie(movie);
-                        }}
-                        disabled={isAdded}
-                      >
-                        <span className="material-symbols-outlined">
-                          {isAdded ? 'check_circle' : 'add_circle'}
-                        </span>
-                      </button>
+                      <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
+                        <div className="card-actions-menu">
+                          {!isAdded && openSearchMenuId === movie.id && (
+                            <>
+                              {Object.entries(STATUSES).map(([key, { icon, label }]) => (
+                                <button
+                                  key={key}
+                                  className="card-actions-menu-item card-actions-menu-item-anim"
+                                  title={label}
+                                  onClick={() => {
+                                    handleAddMovie(movie, key);
+                                    setOpenSearchMenuId(null);
+                                  }}
+                                >
+                                  <span className="material-symbols-outlined">{icon}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          <button
+                            className={`card-actions-menu-item ${isAdded ? 'active' : ''}`}
+                            onClick={() => {
+                              if (isAdded) return;
+                              setOpenSearchMenuId((prev) => (prev === movie.id ? null : movie.id));
+                            }}
+                            disabled={isAdded}
+                          >
+                            <span className="material-symbols-outlined">
+                              {isAdded ? 'check_circle' : 'add_circle'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })

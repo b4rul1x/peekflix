@@ -672,3 +672,68 @@ body {
   z-index: 10;
   padding: 8px 0;
 }
+
+.list-card-actions {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.card-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px;
+  z-index: 5;
+}
+
+.card-actions-menu-item {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-actions-menu-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.card-actions-menu-item.active {
+  color: var(--accent);
+  cursor: default;
+}
+
+.card-actions-menu-item .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.card-actions-menu-delete:hover {
+  color: var(--accent);
+}
+
+.card-actions-menu-item-anim {
+  animation: slideIn 0.15s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -57,6 +57,7 @@ function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [addedIds, setAddedIds] = useState([]);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const [myMovies, setMyMovies] = useState([]);
   const [continueWatching, setContinueWatching] = useState([]);
@@ -145,6 +146,13 @@ function App() {
       }
     }
   }, [selectedMovie, expandedCategory]);
+
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
 
   const GENRE = { id: 28, title: 'Бойовики' };
 
@@ -408,7 +416,7 @@ const handleChangeStatus = async(movieId, newStatus) => {
     return;
   }
   
-  setSelectedMovie((prev) => ({ ...prev, status: newStatus }));
+  setSelectedMovie((prev) => (prev && prev.id === movieId ? { ...prev, status: newStatus } : prev));
   loadMyMovies();
   loadContinueWatching();
   }
@@ -785,15 +793,44 @@ const handleSaveRating = async (movieId, newRating) => {
                         {STATUSES[movie.status]?.label}
                       </div>
                     </div>
-                    <button
-                      className="icon-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMovie(movie.id);
-                      }}
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
+                    <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="card-actions-menu">
+                        {openMenuId === movie.id && (
+                          <>
+                            {Object.entries(STATUSES).map(([key, { icon, label }]) => (
+                              <button
+                                key={key}
+                                className={`card-actions-menu-item card-actions-menu-item-anim ${key === movie.status ? 'active' : ''}`}
+                                title={label}
+                                onClick={() => {
+                                  if (key === movie.status) return;
+                                  handleChangeStatus(movie.id, key);
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                <span className="material-symbols-outlined">{icon}</span>
+                              </button>
+                            ))}
+                            <button
+                              className="card-actions-menu-item card-actions-menu-item-anim card-actions-menu-delete"
+                              title="Видалити"
+                              onClick={() => {
+                                handleDeleteMovie(movie.id);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              <span className="material-symbols-outlined">delete</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="card-actions-menu-item"
+                          onClick={() => setOpenMenuId((prev) => (prev === movie.id ? null : movie.id))}
+                        >
+                          <span className="material-symbols-outlined">more_vert</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

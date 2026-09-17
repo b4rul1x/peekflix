@@ -84,10 +84,18 @@ function App() {
   const [showRatingPopover, setShowRatingPopover] = useState(false);
 
   useEffect(() => {
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    tg.disableVerticalSwipes();
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+
+    try {
+      tg.ready();
+      tg.expand();
+      if (typeof tg.disableVerticalSwipes === 'function') {
+        tg.disableVerticalSwipes();
+      }
+    } catch (err) {
+      console.error('Telegram WebApp init error:', err);
+    }
 
     if (tg.initDataUnsafe?.user) {
       setUsername(tg.initDataUnsafe.user.first_name);

@@ -811,13 +811,19 @@ const handleSaveRating = async (movieId, newRating) => {
                     <div className="list-card-info">
                       <div className="list-card-title">{movie.title}</div>
                       <div className="list-card-meta">
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: '14px', verticalAlign: 'middle' }}
-                        >
-                          {STATUSES[movie.status]?.icon}
-                        </span>{' '}
-                        {STATUSES[movie.status]?.label}
+                        {movie.user_rating ? (
+                          <>
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '14px', verticalAlign: 'middle', color: '#ffc107' }}
+                            >
+                              star
+                            </span>{' '}
+                            {movie.user_rating}/10
+                          </>
+                        ) : (
+                          'Без оцінки'
+                        )}
                       </div>
                     </div>
                     <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>

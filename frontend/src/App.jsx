@@ -641,22 +641,30 @@ const getMovieStatusIcon = (movie) => {
             </div>
 
             <div className="expanded-grid">
-              {expandedMovies.map((movie, index) => (
-                <div
-                  key={movie.tmdb_id ?? movie.id ?? index}
-                  className="poster-card"
-                  onClick={() => handleExpandedMovieClick(movie)}
-                >
-                  {movie.poster_path && (
-                    <img
-                      className="poster-card-image"
-                      src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
-                      alt={movie.title}
-                    />
-                  )}
-                  <div className="poster-card-title">{movie.title}</div>
-                </div>
-              ))}
+              {expandedMovies.map((movie, index) => {
+                const statusIcon = getMovieStatusIcon(movie);
+                return (
+                  <div
+                    key={movie.tmdb_id ?? movie.id ?? index}
+                    className="poster-card"
+                    onClick={() => handleExpandedMovieClick(movie)}
+                  >
+                    {movie.poster_path && (
+                      <img
+                        className="poster-card-image"
+                        src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                        alt={movie.title}
+                      />
+                    )}
+                    {statusIcon && (
+                      <div className="poster-status-badge" title={statusIcon.label}>
+                        <span className="material-symbols-outlined">{statusIcon.icon}</span>
+                      </div>
+                    )}
+                    <div className="poster-card-title">{movie.title}</div>
+                  </div>
+                );
+              })}
             </div>
 
             {expandedHasMore && (

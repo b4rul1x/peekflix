@@ -207,7 +207,7 @@ async def get_recommendations(user_id: int, db: Session = Depends(get_db)):
     recommendations = []
 
     for movie in rated_movies:
-        data = await tmdb_get(f"/movie/{movie.tmdb_id}/recommendations")
+        data = await tmdb_get(f"/movie/{movie.tmdb_id}/recommendations", {"language": "uk-UA"})
         for result in data.get("results", []):
             tmdb_id = result["id"]
             if tmdb_id in added_ids or tmdb_id in seen_ids:
@@ -227,7 +227,7 @@ async def get_similar(user_id: int, db: Session = Depends(get_db)):
     if not top_movie:
         return {"source_title": None, "results": []}
 
-    data = await tmdb_get(f"/movie/{top_movie.tmdb_id}/similar")
+    data = await tmdb_get(f"/movie/{top_movie.tmdb_id}/similar", {"language": "uk-UA"})
 
     return {
         "source_title": top_movie.title,

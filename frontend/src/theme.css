@@ -626,6 +626,7 @@ body {
 }
 
 .poster-card {
+  position: relative;
   flex-shrink: 0;
   width: 110px;
   cursor: pointer;
@@ -738,4 +739,36 @@ body {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+.poster-status-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(17, 17, 22, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  color: var(--accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.poster-status-badge .material-symbols-outlined {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }

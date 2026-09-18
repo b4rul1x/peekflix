@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component {
   }
 }
 
-function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll }) {
+function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll, getStatusIcon }) {
   return (
     <div className="home-row">
       <div className="row-header">
@@ -60,22 +60,30 @@ function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll })
       </div>
 
       <div className="row-scroll">
-        {movies.slice(0, 10).map((movie, index) => (
-          <div
-            key={movie.tmdb_id ?? movie.id ?? index}
-            className="poster-card"
-            onClick={() => onMovieClick(movie)}
-          >
-            {getPoster(movie) && (
-              <img
-                className="poster-card-image"
-                src={`${TMDB_IMAGE_URL}${getPoster(movie)}`}
-                alt={getTitle(movie)}
-              />
-            )}
-            <div className="poster-card-title">{getTitle(movie)}</div>
-          </div>
-        ))}
+        {movies.slice(0, 10).map((movie, index) => {
+          const statusIcon = getStatusIcon ? getStatusIcon(movie) : null;
+          return (
+            <div
+              key={movie.tmdb_id ?? movie.id ?? index}
+              className="poster-card"
+              onClick={() => onMovieClick(movie)}
+            >
+              {getPoster(movie) && (
+                <img
+                  className="poster-card-image"
+                  src={`${TMDB_IMAGE_URL}${getPoster(movie)}`}
+                  alt={getTitle(movie)}
+                />
+              )}
+              {statusIcon && (
+                <div className="poster-status-badge" title={statusIcon.label}>
+                  <span className="material-symbols-outlined">{statusIcon.icon}</span>
+                </div>
+              )}
+              <div className="poster-card-title">{getTitle(movie)}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -481,6 +489,15 @@ const handleSaveRating = async (movieId, newRating) => {
   loadMyMovies();
 };
 
+const getMovieStatusIcon = (movie) => {
+  const tmdbId = movie.tmdb_id ?? movie.id;
+  const userMovie = myMovies.find((m) => m.tmdb_id === tmdbId);
+  if (userMovie && STATUSES[userMovie.status]) {
+    return STATUSES[userMovie.status];
+  }
+  return null;
+};
+
   return (
     <div style={{ padding: '20px' }}>
       {selectedMovie ? (
@@ -740,6 +757,7 @@ const handleSaveRating = async (movieId, newRating) => {
                       getPoster={(movie) => movie.poster_path}
                       getTitle={(movie) => movie.title}
                       onSeeAll={() => handleOpenExpanded('continueWatching')}
+                      getStatusIcon={getMovieStatusIcon}
                     />
                   )}
 
@@ -750,6 +768,7 @@ const handleSaveRating = async (movieId, newRating) => {
                     getPoster={(movie) => movie.poster_path}
                     getTitle={(movie) => movie.title}
                     onSeeAll={() => handleOpenExpanded('trending')}
+                    getStatusIcon={getMovieStatusIcon}
                   />
 
                   <HomeRow
@@ -759,6 +778,7 @@ const handleSaveRating = async (movieId, newRating) => {
                     getPoster={(movie) => movie.poster_path}
                     getTitle={(movie) => movie.title}
                     onSeeAll={() => handleOpenExpanded('topRated')}
+                    getStatusIcon={getMovieStatusIcon}
                   />
 
                   <HomeRow
@@ -768,6 +788,7 @@ const handleSaveRating = async (movieId, newRating) => {
                     getPoster={(movie) => movie.poster_path}
                     getTitle={(movie) => movie.title}
                     onSeeAll={() => handleOpenExpanded('nowPlaying')}
+                    getStatusIcon={getMovieStatusIcon}
                   />
 
                   <HomeRow
@@ -777,6 +798,7 @@ const handleSaveRating = async (movieId, newRating) => {
                     getPoster={(movie) => movie.poster_path}
                     getTitle={(movie) => movie.title}
                     onSeeAll={() => handleOpenExpanded('genre')}
+                    getStatusIcon={getMovieStatusIcon}
                   />
 
                   {recommendations.length > 0 && (
@@ -787,6 +809,7 @@ const handleSaveRating = async (movieId, newRating) => {
                       getPoster={(movie) => movie.poster_path}
                       getTitle={(movie) => movie.title}
                       onSeeAll={() => handleOpenExpanded('recommendations')}
+                      getStatusIcon={getMovieStatusIcon}
                     />
                   )}
 
@@ -798,6 +821,7 @@ const handleSaveRating = async (movieId, newRating) => {
                       getPoster={(movie) => movie.poster_path}
                       getTitle={(movie) => movie.title}
                       onSeeAll={() => handleOpenExpanded('similar')}
+                      getStatusIcon={getMovieStatusIcon}
                     />
                   )}
                 </>

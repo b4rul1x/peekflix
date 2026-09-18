@@ -199,7 +199,7 @@ async def get_recommendations(user_id: int, db: Session = Depends(get_db)):
     ).order_by(models.Movie.id.desc()).limit(5).all()
 
     if not rated_movies:
-        return
+        return []
 
     added_ids = {m.tmdb_id for m in db.query(models.Movie).filter(models.Movie.user_id == user_id).all()}
 

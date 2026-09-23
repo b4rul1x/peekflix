@@ -99,6 +99,7 @@ function App() {
   const [addedIds, setAddedIds] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openSearchMenuId, setOpenSearchMenuId] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const [myMovies, setMyMovies] = useState([]);
   const [continueWatching, setContinueWatching] = useState([]);
@@ -220,6 +221,28 @@ function App() {
     const data = await response.json();
     setResults(data);
   };
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      handleSearch();
+      setShowDropdown(true);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [query]);
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    const handleClickOutside = () => setShowDropdown(false);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showDropdown]);
 
   const handleAddMovie = async (movie, status = 'watched') => {
     const response = await fetch(`${API_URL}/movies`, {
@@ -684,7 +707,7 @@ const getMovieStatusIcon = (movie) => {
 
           {activeTab === 'search' && (
             <div>
-              <div className="search-bar">
+              <div className="search-bar" onClick={(e) => e.stopPropagation()}>
                 <button className="search-icon-button" onClick={handleSearch}>
                   <span className="material-symbols-outlined">search</span>
                 </button>
@@ -693,69 +716,77 @@ const getMovieStatusIcon = (movie) => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onFocus={() => results.length > 0 && setShowDropdown(true)}
                   placeholder="Назва фільму..."
                   className="search-input"
                 />
+
+                {showDropdown && results.length > 0 && (
+                  <div className="search-dropdown">
+                    {results.map((movie) => {
+                      const isAdded = addedIds.includes(movie.id);
+
+                      return (
+                        <div
+                          key={movie.id}
+                          className="list-card"
+                          onClick={() => {
+                            handleOpenDetails(movie.id);
+                            setShowDropdown(false);
+                          }}
+                        >
+                          {movie.poster_path && (
+                            <img
+                              className="list-card-poster"
+                              src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                              alt={movie.title}
+                            />
+                          )}
+                          <div className="list-card-info">
+                            <div className="list-card-title">{movie.title}</div>
+                            <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
+                          </div>
+                          <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
+                            <div className="card-actions-menu">
+                              {!isAdded && openSearchMenuId === movie.id && (
+                                <>
+                                  {Object.entries(STATUSES).map(([key, { icon, label }]) => (
+                                    <button
+                                      key={key}
+                                      className="card-actions-menu-item card-actions-menu-item-anim"
+                                      title={label}
+                                      onClick={() => {
+                                        handleAddMovie(movie, key);
+                                        setOpenSearchMenuId(null);
+                                        setShowDropdown(false);
+                                      }}
+                                    >
+                                      <span className="material-symbols-outlined">{icon}</span>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                              <button
+                                className={`card-actions-menu-item ${isAdded ? 'active' : ''}`}
+                                onClick={() => {
+                                  if (isAdded) return;
+                                  setOpenSearchMenuId((prev) => (prev === movie.id ? null : movie.id));
+                                }}
+                                disabled={isAdded}
+                              >
+                                <span className="material-symbols-outlined">
+                                  {isAdded ? 'check_circle' : 'add_circle'}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {results.length > 0 ? (
-                results.map((movie) => {
-                  const isAdded = addedIds.includes(movie.id);
-
-                  return (
-                    <div
-                      key={movie.id}
-                      className="list-card"
-                      onClick={() => handleOpenDetails(movie.id)}
-                    >
-                      {movie.poster_path && (
-                        <img
-                          className="list-card-poster"
-                          src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
-                          alt={movie.title}
-                        />
-                      )}
-                      <div className="list-card-info">
-                        <div className="list-card-title">{movie.title}</div>
-                        <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
-                      </div>
-                      <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
-                        <div className="card-actions-menu">
-                          {!isAdded && openSearchMenuId === movie.id && (
-                            <>
-                              {Object.entries(STATUSES).map(([key, { icon, label }]) => (
-                                <button
-                                  key={key}
-                                  className="card-actions-menu-item card-actions-menu-item-anim"
-                                  title={label}
-                                  onClick={() => {
-                                    handleAddMovie(movie, key);
-                                    setOpenSearchMenuId(null);
-                                  }}
-                                >
-                                  <span className="material-symbols-outlined">{icon}</span>
-                                </button>
-                              ))}
-                            </>
-                          )}
-                          <button
-                            className={`card-actions-menu-item ${isAdded ? 'active' : ''}`}
-                            onClick={() => {
-                              if (isAdded) return;
-                              setOpenSearchMenuId((prev) => (prev === movie.id ? null : movie.id));
-                            }}
-                            disabled={isAdded}
-                          >
-                            <span className="material-symbols-outlined">
-                              {isAdded ? 'check_circle' : 'add_circle'}
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
                 <>
                   {continueWatching.length > 0 && (
                     <HomeRow
@@ -833,7 +864,6 @@ const getMovieStatusIcon = (movie) => {
                     />
                   )}
                 </>
-              )}
             </div>
           )}
 

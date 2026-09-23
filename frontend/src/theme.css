@@ -772,3 +772,26 @@ body {
   justify-content: center;
   text-align: center;
 }
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  padding: 6px;
+}
+
+.search-dropdown .list-card {
+  margin-bottom: 6px;
+}
+
+.search-dropdown .list-card:last-child {
+  margin-bottom: 0;
+}

@@ -126,6 +126,8 @@ function App() {
 
   const [showRatingPopover, setShowRatingPopover] = useState(false);
 
+  const [searchScreenOpen, setSearchScreenOpen] = useState(false);
+
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
@@ -236,6 +238,13 @@ function App() {
 
     return () => clearTimeout(timeoutId);
   }, [query]);
+
+  const handleSearchSubmit = () => {
+    if (!query.trim()) return;
+    handleSearch();
+    setShowDropdown(false);
+    setSearchScreenOpen(true);
+  };
 
   useEffect(() => {
     if (!showDropdown) return;
@@ -701,6 +710,74 @@ const getMovieStatusIcon = (movie) => {
               </button>
             )}
           </div>
+        ) : searchScreenOpen ? (
+          <div>
+            <button className="back-button" onClick={() => setSearchScreenOpen(false)}>
+              <span className="material-symbols-outlined">arrow_back</span>
+              Назад
+            </button>
+
+            {results.length > 0 ? (
+              results.map((movie) => {
+                const isAdded = addedIds.includes(movie.id);
+
+                return (
+                  <div
+                    key={movie.id}
+                    className="list-card"
+                    onClick={() => handleOpenDetails(movie.id)}
+                  >
+                    {movie.poster_path && (
+                      <img
+                        className="list-card-poster"
+                        src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                        alt={movie.title}
+                      />
+                    )}
+                    <div className="list-card-info">
+                      <div className="list-card-title">{movie.title}</div>
+                      <div className="list-card-meta">{movie.release_date?.slice(0, 4)}</div>
+                    </div>
+                    <div className="list-card-actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="card-actions-menu">
+                        {!isAdded && openSearchMenuId === movie.id && (
+                          <>
+                            {Object.entries(STATUSES).map(([key, { icon, label }]) => (
+                              <button
+                                key={key}
+                                className="card-actions-menu-item card-actions-menu-item-anim"
+                                title={label}
+                                onClick={() => {
+                                  handleAddMovie(movie, key);
+                                  setOpenSearchMenuId(null);
+                                }}
+                              >
+                                <span className="material-symbols-outlined">{icon}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                        <button
+                          className={`card-actions-menu-item ${isAdded ? 'active' : ''}`}
+                          onClick={() => {
+                            if (isAdded) return;
+                            setOpenSearchMenuId((prev) => (prev === movie.id ? null : movie.id));
+                          }}
+                          disabled={isAdded}
+                        >
+                          <span className="material-symbols-outlined">
+                            {isAdded ? 'check_circle' : 'add_circle'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="placeholder-text">Нічого не знайдено</div>
+            )}
+          </div>
         ) : (
         <>
           <div className="app-header">Peekflix</div>
@@ -708,14 +785,14 @@ const getMovieStatusIcon = (movie) => {
           {activeTab === 'search' && (
             <div>
               <div className="search-bar" onClick={(e) => e.stopPropagation()}>
-                <button className="search-icon-button" onClick={handleSearch}>
+                <button className="search-icon-button" onClick={handleSearchSubmit}>
                   <span className="material-symbols-outlined">search</span>
                 </button>
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
                   onFocus={() => results.length > 0 && setShowDropdown(true)}
                   placeholder="Назва фільму..."
                   className="search-input"
@@ -973,8 +1050,8 @@ const getMovieStatusIcon = (movie) => {
               className={`nav-item ${activeTab === 'search' ? 'active' : ''}`}
               onClick={() => handleTabChange('search')}
             >
-              <span className="material-symbols-outlined">search</span>
-              <span>Пошук</span>
+              <span className="material-symbols-outlined">home</span>
+              <span>Головна</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'mylist' ? 'active' : ''}`}

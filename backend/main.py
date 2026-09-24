@@ -129,9 +129,29 @@ async def get_movie_details(tmdb_id: int):
             f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits",
             params={"api_key": TMDB_API_KEY},
         )
+        videos_response = await client.get(
+            f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos",
+            params={"api_key": TMDB_API_KEY, "language": "uk-UA"},
+        )
 
     details = details_response.json()
     credits = credits_response.json()
+    videos = videos_response.json()
+
+    def find_trailer(video_list):
+        return next(
+            (v for v in video_list if v.get("type") == "Trailer" and v.get("site") == "YouTube"),
+            None,
+        )
+
+    trailer = find_trailer(videos.get("results", []))
+
+    if not trailer:
+        fallback_response = await httpx.AsyncClient().get(
+            f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos",
+            params={"api_key": TMDB_API_KEY},
+        )
+        trailer = find_trailer(fallback_response.json().get("results", []))
 
     director = next(
         (person["name"] for person in credits.get("crew", []) if person["job"] == "Director"),
@@ -151,6 +171,7 @@ async def get_movie_details(tmdb_id: int):
         "vote_average": details.get("vote_average"),
         "director": director,
         "cast": cast,
+        "trailer_key": trailer["key"] if trailer else None
     }
 
 @app.get("/home/trending")

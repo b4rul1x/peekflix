@@ -125,6 +125,7 @@ function App() {
   const [filterStatus, setFilterStatus] = useState('watching');
 
   const [showRatingPopover, setShowRatingPopover] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
 
@@ -534,10 +535,12 @@ const getMovieStatusIcon = (movie) => {
     <div style={{ padding: '20px' }}>
       {selectedMovie ? (
         <div>
-          <button className="back-button" onClick={() => setSelectedMovie(null)}>
-            <span className="material-symbols-outlined">arrow_back</span>
-            Назад
-          </button>
+          <div className="detail-header">
+            <button className="back-button" onClick={() => { setSelectedMovie(null); setShowTrailer(false); }}>
+              <span className="material-symbols-outlined">arrow_back</span>
+              Назад
+            </button>
+          </div>
 
           <div className="movie-header">
             <div className="poster-column">
@@ -604,6 +607,13 @@ const getMovieStatusIcon = (movie) => {
             </div>
           </div>
 
+          {selectedMovie.trailer_key && (
+            <button className="trailer-button" onClick={() => setShowTrailer(true)}>
+              <span className="material-symbols-outlined">play_circle</span>
+              Дивитись трейлер
+            </button>
+          )}
+
           <div className="status-row">
             {Object.entries(STATUSES).map(([key, { label, icon }]) => (
               <button
@@ -658,6 +668,24 @@ const getMovieStatusIcon = (movie) => {
           )}
 
           <p className="overview-text-full">{selectedMovie.overview}</p>
+
+          {showTrailer && selectedMovie.trailer_key && (
+            <div className="trailer-modal-overlay" onClick={() => setShowTrailer(false)}>
+              <div className="trailer-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="trailer-modal-close" onClick={() => setShowTrailer(false)}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+                <iframe
+                  className="trailer-iframe"
+                  src={`https://www.youtube.com/embed/${selectedMovie.trailer_key}?autoplay=1`}
+                  title="Трейлер"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          )}
         </div>
       ) : expandedCategory ? (
           <div>
@@ -712,10 +740,12 @@ const getMovieStatusIcon = (movie) => {
           </div>
         ) : searchScreenOpen ? (
           <div>
-            <button className="back-button" onClick={() => setSearchScreenOpen(false)}>
-              <span className="material-symbols-outlined">arrow_back</span>
-              Назад
-            </button>
+            <div className="detail-header">
+              <button className="back-button" onClick={() => setSearchScreenOpen(false)}>
+                <span className="material-symbols-outlined">arrow_back</span>
+                Назад
+              </button>
+            </div>
 
             {results.length > 0 ? (
               results.map((movie) => {

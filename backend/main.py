@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     await fix_missing_runtimes(get_db)
     yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,13 +73,23 @@ async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Цей фільм вже є у вашому списку")
 
     runtime = movie.runtime
+
     if runtime is None:
-        async with httpx.AsyncClient() as client:
-            details_response = await client.get(
-                f"https://api.themoviedb.org/3/movie/{movie.tmdb_id}",
-                params={"api_key": TMDB_API_KEY},
-            )
-        runtime = details_response.json().get("runtime")
+        try:
+            async with httpx.AsyncClient() as client:
+                details_response = await client.get(
+                    f"https://api.themoviedb.org/3/movie/{movie.tmdb_id}",
+                    params={"api_key": TMDB_API_KEY},
+                    timeout=5.0
+                )
+
+            if details_response.status_code == 200:
+                details = details_response.json()
+                runtime = details.get("runtime")
+            else:
+                print(f"TMDB API повернув помилку {details_response.status_code}: {details_response.text}")
+        except Exception as e:
+            print(f"Помилка з'єднання з TMDB API: {e}")
 
     new_movie = models.Movie(
         tmdb_id=movie.tmdb_id,

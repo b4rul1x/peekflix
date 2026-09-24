@@ -11,3 +11,4 @@ class Movie(Base):
     user_id = Column(Integer, index=True)
     status = Column(String, default="watched")
     user_rating = Column(Integer, nullable=True)
+    runtime = Column(Integer, nullable=True)

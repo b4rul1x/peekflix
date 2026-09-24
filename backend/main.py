@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import httpx
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import engine, Base, get_db
+from database import engine, Base, get_db, run_migrations
+from utils import fix_missing_runtimes
 import models
 from schemas import MovieCreate, MovieDetailsUpdate
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +18,12 @@ load_dotenv(dotenv_path=env_path)
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
 Base.metadata.create_all(bind=engine)
+run_migrations()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await fix_missing_runtimes(get_db)
+    yield
 
 app = FastAPI()
 
@@ -55,7 +63,7 @@ async def search_movies(query: str):
     return results[:10]
 
 @app.post("/movies")
-def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
+async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Movie).filter(
         models.Movie.tmdb_id == movie.tmdb_id,
         models.Movie.user_id == movie.user_id
@@ -64,12 +72,22 @@ def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Цей фільм вже є у вашому списку")
 
+    runtime = movie.runtime
+    if runtime is None:
+        async with httpx.AsyncClient() as client:
+            details_response = await client.get(
+                f"https://api.themoviedb.org/3/movie/{movie.tmdb_id}",
+                params={"api_key": TMDB_API_KEY},
+            )
+        runtime = details_response.json().get("runtime")
+
     new_movie = models.Movie(
         tmdb_id=movie.tmdb_id,
         title=movie.title,
         poster_path=movie.poster_path,
         user_id=movie.user_id,
         status=movie.status,
+        runtime=runtime,
     )
     db.add(new_movie)
     db.commit()
@@ -254,3 +272,39 @@ async def get_similar(user_id: int, db: Session = Depends(get_db)):
         "source_title": top_movie.title,
         "results": data.get("results", [])
     }
+
+@app.get("/profile/stats/{user_id}")
+def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
+    movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).all()
+
+    stats = {}
+    total_runtime = 0
+
+    for movie in movies:
+        status = movie.status
+        runtime = movie.runtime or 0
+        if status not in stats:
+            stats[status] = {"count": 0, "runtime": 0}
+        stats[status]["count"] += 1
+        stats[status]["runtime"] += runtime
+        total_runtime += runtime
+
+    by_status = []
+    for status, data in stats.items():
+        percentage = round((data["runtime"] / total_runtime) * 100, 1) if total_runtime > 0 else 0
+        by_status.append({
+            "status": status,
+            "count": data["count"],
+            "runtime_minutes": data["runtime"],
+            "percentage": percentage,
+        })
+
+    return {
+        "total_runtime_minutes": total_runtime,
+        "by_status": by_status,
+    }
+
+@app.get("/profile/recent/{user_id}")
+def get_recent_movies(user_id: int, db: Session = Depends(get_db)):
+    movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(5).all()
+    return movies

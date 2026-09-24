@@ -14,6 +14,15 @@ const STATUSES = {
   favorite: { label: 'Улюблене', icon: 'favorite' },
 };
 
+const STATUS_COLORS = {
+  watching: '#4FC3F7',
+  planned: '#AB47BC',
+  watched: '#66BB6A',
+  dropped: '#EF5350',
+  paused: '#FFA726',
+  favorite: '#EC407A',
+};
+
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -91,7 +100,7 @@ function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll, g
 
 function App() {
   const [username, setUsername] = useState('гість');
-  const [userId, setUserId] = useState(null);
+  const [userId, setUserId] = useState(12345);
   const [activeTab, setActiveTab] = useState('search');
 
   const [query, setQuery] = useState('');
@@ -128,6 +137,10 @@ function App() {
   const [showTrailer, setShowTrailer] = useState(false);
 
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
+  const [userPhoto, setUserPhoto] = useState(null);
+  const [profileStats, setProfileStats] = useState(null);
+  const [recentMovies, setRecentMovies] = useState([]);
+  const [selectedStatKey, setSelectedStatKey] = useState(null);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -146,12 +159,20 @@ function App() {
     if (tg.initDataUnsafe?.user) {
       setUsername(tg.initDataUnsafe.user.first_name);
       setUserId(tg.initDataUnsafe.user.id);
+      setUserPhoto(tg.initDataUnsafe.user.photo_url || null);
     }
   }, []);
 
   useEffect(() => {
     if (userId) {
       loadMyMovies();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadProfileStats();
+      loadRecentMovies();
     }
   }, [userId]);
 
@@ -282,6 +303,8 @@ function App() {
     setMyMovies((prev) => [...prev, savedMovie]);
     setSelectedMovie((prev) => prev && (prev.tmdb_id ?? prev.id) === savedMovie.tmdb_id ? { ...prev, id: savedMovie.id, status: savedMovie.status } : prev);
     loadContinueWatching();
+    loadProfileStats();
+    loadRecentMovies();
   };
 
 const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
@@ -316,6 +339,32 @@ const loadMyMovies = async () => {
   const data = await response.json();
   setMyMovies(data);
   setAddedIds(data.map((movie) => movie.tmdb_id));
+};
+
+const loadProfileStats = async () => {
+  if (!userId) return;
+
+  const response = await fetch(`${API_URL}/profile/stats/${userId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити статистику:', response.status);
+    return;
+  }
+
+  const data = await response.json();
+  setProfileStats(data);
+};
+
+const loadRecentMovies = async () => {
+  if (!userId) return;
+
+  const response = await fetch(`${API_URL}/profile/recent/${userId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити останні фільми:', response.status);
+    return;
+  }
+
+  const data = await response.json();
+  setRecentMovies(data);
 };
 
 const loadTrending = async () => {
@@ -467,6 +516,9 @@ const handleTabChange = (tab) => {
   setActiveTab(tab);
   if (tab === 'mylist') {
     loadMyMovies();
+  } else if (tab === 'profile') {
+    loadProfileStats();
+    loadRecentMovies();
   }
 };
 
@@ -481,6 +533,8 @@ const handleDeleteMovie = async (movieId) => {
   }
 
   setMyMovies((prev) => prev.filter((movie) => movie.id !== movieId));
+  loadProfileStats();
+  loadRecentMovies();
 };
 
 const handleChangeStatus = async(movieId, newStatus) => {
@@ -498,6 +552,8 @@ const handleChangeStatus = async(movieId, newStatus) => {
   setSelectedMovie((prev) => (prev && prev.id === movieId ? { ...prev, status: newStatus } : prev));
   loadMyMovies();
   loadContinueWatching();
+  loadProfileStats();
+  loadRecentMovies();
   }
 
 const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
@@ -1072,7 +1128,155 @@ const getMovieStatusIcon = (movie) => {
           )}
 
           {activeTab === 'profile' && (
-            <div className="placeholder-text">Скоро тут буде профіль</div>
+            <div className="profile-screen">
+              
+              {/* 1. Блок профілю (Аватар + Ім'я) */}
+              <div className="profile-user-card">
+                {userPhoto ? (
+                  <img className="profile-avatar" src={userPhoto} alt={username} />
+                ) : (
+                  <div className="profile-avatar profile-avatar-placeholder">
+                    <span className="material-symbols-outlined">person</span>
+                  </div>
+                )}
+                <div className="profile-user-info">
+                  <div className="profile-name">{username}</div>
+                  <div className="profile-badge">Кіноман</div>
+                </div>
+              </div>
+
+              {/* 2. Картка Статистики */}
+              <div className="profile-card">
+                <div className="profile-card-title">
+                  <span className="material-symbols-outlined">bar_chart</span>
+                  Аналітика переглядів
+                </div>
+
+                <div className="stats-container-row">
+                  {/* Кругова діаграма */}
+                  <div className="donut-chart-wrapper">
+                    <svg viewBox="0 0 180 180" className="donut-chart">
+                      <circle cx="90" cy="90" r="70" fill="none" stroke="#252538" strokeWidth="22" />
+                      <g transform="rotate(-90 90 90)">
+                        {(() => {
+                          if (!profileStats || profileStats.total_runtime_minutes === 0) return null;
+                          const circumference = 2 * Math.PI * 70;
+                          let cumulative = 0;
+
+                          return profileStats.by_status.map(({ status, percentage }) => {
+                            if (percentage <= 0) return null;
+                            const dash = (percentage / 100) * circumference;
+                            const offset = -(cumulative / 100) * circumference;
+                            cumulative += percentage;
+                            const isSelected = selectedStatKey === status;
+
+                            return (
+                              <circle
+                                key={status}
+                                cx="90"
+                                cy="90"
+                                r="70"
+                                fill="none"
+                                stroke={STATUS_COLORS[status] || '#888'}
+                                strokeWidth={isSelected ? 26 : 22}
+                                strokeDasharray={`${dash} ${circumference - dash}`}
+                                strokeDashoffset={offset}
+                                className="donut-segment"
+                                onClick={() => setSelectedStatKey((prev) => (prev === status ? null : status))}
+                              />
+                            );
+                          });
+                        })()}
+                      </g>
+                    </svg>
+                    <div className="donut-center">
+                      {(() => {
+                        const selected = profileStats?.by_status?.find((s) => s.status === selectedStatKey);
+                        const totalMinutes = selected ? selected.runtime_minutes : (profileStats?.total_runtime_minutes || 0);
+                        const hours = Math.round(totalMinutes / 60);
+
+                        return (
+                          <>
+                            <div className="donut-center-value">{hours} год</div>
+                            <div className="donut-center-label">
+                              {selected
+                                ? `${STATUSES[selected.status]?.label ?? selected.status}`
+                                : 'Загалом'}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Легенда / Список усіх категорій */}
+                  <div className="stats-legend-compact">
+                    {Object.entries(STATUSES).map(([statusKey, { label, icon }]) => {
+                      const statData = profileStats?.by_status?.find((s) => s.status === statusKey);
+                      const count = statData ? statData.count : 0;
+                      const isSelected = selectedStatKey === statusKey;
+
+                      return (
+                        <div
+                          key={statusKey}
+                          className={`stats-legend-item-compact ${isSelected ? 'active' : ''}`}
+                          onClick={() => setSelectedStatKey((prev) => (prev === statusKey ? null : statusKey))}
+                        >
+                          <div className="legend-item-left">
+                            <span
+                              className="material-symbols-outlined status-icon-sm"
+                              style={{ color: STATUS_COLORS[statusKey] || '#888' }}
+                            >
+                              {icon}
+                            </span>
+                            <span className="stats-legend-label-sm">{label}</span>
+                          </div>
+                          <span className="stats-legend-count-sm">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Картка Історії перегляду */}
+              <div className="profile-card">
+                <div className="profile-card-title">
+                  <span className="material-symbols-outlined">history</span>
+                  Історія перегляду
+                </div>
+
+                {recentMovies.length === 0 ? (
+                  <p className="placeholder-text">Список поки порожній</p>
+                ) : (
+                  <div className="recent-movies-list">
+                    {recentMovies.map((movie) => (
+                      <div
+                        key={movie.id}
+                        className="list-card recent-card"
+                        onClick={() => handleOpenDetails(movie.tmdb_id, movie)}
+                      >
+                        {movie.poster_path && (
+                          <img
+                            className="list-card-poster"
+                            src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                            alt={movie.title}
+                          />
+                        )}
+                        <div className="list-card-info">
+                          <div className="list-card-title">{movie.title}</div>
+                          {/* БЕЗ ІКОНОК: Тільки текст статусу */}
+                          <div className="list-card-meta">
+                            {STATUSES[movie.status]?.label ?? movie.status}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
           )}
 
           <div className="bottom-nav">
@@ -1092,7 +1296,7 @@ const getMovieStatusIcon = (movie) => {
             </button>
             <button
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => handleTabChange('profile')}
             >
               <span className="material-symbols-outlined">person</span>
               <span>Профіль</span>

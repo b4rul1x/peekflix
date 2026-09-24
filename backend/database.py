@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 if os.getenv("RAILWAY_ENVIRONMENT"):
@@ -17,3 +17,12 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def run_migrations():
+    inspector = inspect(engine)
+    existing_columns = [col["name"] for col in inspector.get_columns("movies")]
+
+    if "runtime" not in existing_columns:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN runtime INTEGER"))
+            conn.commit()

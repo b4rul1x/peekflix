@@ -12,6 +12,9 @@ from schemas import MovieCreate, MovieDetailsUpdate
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from tmdb import tmdb_get
+import sqlite3
+import tempfile
+from fastapi.responses import FileResponse
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -318,3 +321,22 @@ def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
 def get_recent_movies(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(5).all()
     return movies
+
+@app.get("/admin/download-db")
+def download_db(token: str):
+    expected = os.getenv("BACKUP_TOKEN")
+    if not expected or token != expected:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    db_path = engine.url.database
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    tmp.close()
+
+    src = sqlite3.connect(db_path)
+    dst = sqlite3.connect(tmp.name)
+    src.backup(dst)
+    dst.close()
+    src.close()
+
+    return FileResponse(tmp.name, filename="peekflix-backup.db")

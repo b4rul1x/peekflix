@@ -100,7 +100,7 @@ function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll, g
 
 function App() {
   const [username, setUsername] = useState('гість');
-  const [userId, setUserId] = useState(12345);
+  const [userId, setUserId] = useState(null);
   const [activeTab, setActiveTab] = useState('search');
 
   const [query, setQuery] = useState('');
@@ -141,6 +141,9 @@ function App() {
   const [profileStats, setProfileStats] = useState(null);
   const [recentMovies, setRecentMovies] = useState([]);
   const [selectedStatKey, setSelectedStatKey] = useState(null);
+  const [collectionExpanded, setCollectionExpanded] = useState(false);
+  const [collectionParts, setCollectionParts] = useState([]);
+  const [movieHistory, setMovieHistory] = useState([]);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -204,6 +207,8 @@ function App() {
       if (previousMovieIdRef.current !== selectedMovie.tmdb_id) {
         window.scrollTo(0, 0);
         previousMovieIdRef.current = selectedMovie.tmdb_id;
+        setCollectionExpanded(false);
+        setCollectionParts([]);
       }
     } else {
       previousMovieIdRef.current = null;
@@ -307,7 +312,11 @@ function App() {
     loadRecentMovies();
   };
 
-const handleOpenDetails = async (tmdbId, myMovieRecord = null) => {
+const handleOpenDetails = async (tmdbId, myMovieRecord = null, options = {}) => {
+  if (!options.keepHistory) {
+    setMovieHistory([]);
+  }
+
   const response = await fetch(`${API_URL}/movie/${tmdbId}`);
 
   if (!response.ok) {
@@ -556,6 +565,27 @@ const handleChangeStatus = async(movieId, newStatus) => {
   loadRecentMovies();
   }
 
+const handleToggleCollection = async () => {
+  if (collectionExpanded) {
+    setCollectionExpanded(false);
+    return;
+  }
+
+  const response = await fetch(`${API_URL}/collection/${selectedMovie.collection_id}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити колекцію:', response.status);
+    return;
+  }
+  const data = await response.json();
+  setCollectionParts(data.parts);
+  setCollectionExpanded(true);
+};
+
+const handleCollectionMovieClick = (movie) => {
+  setMovieHistory((prev) => [...prev, selectedMovie]);
+  handleOpenDetails(movie.tmdb_id, null, { keepHistory: true });
+};
+
 const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
 
 const handleSaveRating = async (movieId, newRating) => {
@@ -592,7 +622,19 @@ const getMovieStatusIcon = (movie) => {
       {selectedMovie ? (
         <div>
           <div className="detail-header">
-            <button className="back-button" onClick={() => { setSelectedMovie(null); setShowTrailer(false); }}>
+            <button
+              className="back-button"
+              onClick={() => {
+                setShowTrailer(false);
+                if (movieHistory.length > 0) {
+                  const previous = movieHistory[movieHistory.length - 1];
+                  setMovieHistory((prev) => prev.slice(0, -1));
+                  setSelectedMovie(previous);
+                } else {
+                  setSelectedMovie(null);
+                }
+              }}
+            >
               <span className="material-symbols-outlined">arrow_back</span>
               Назад
             </button>
@@ -668,6 +710,57 @@ const getMovieStatusIcon = (movie) => {
               <span className="material-symbols-outlined">play_circle</span>
               Дивитись трейлер
             </button>
+          )}
+
+          {selectedMovie.collection_id && (
+            <div className="collection-widget">
+              <button
+                className={`trailer-button collection-toggle ${collectionExpanded ? 'expanded' : ''}`}
+                onClick={handleToggleCollection}
+              >
+                <span className="material-symbols-outlined">video_library</span>
+                Усі частини «{selectedMovie.collection_name}»
+                <span className="material-symbols-outlined" style={{ marginLeft: 'auto' }}>
+                  {collectionExpanded ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+
+              {collectionExpanded && (
+                <div className="collection-panel">
+                  {collectionParts.map((movie) => {
+                    const statusIcon = getMovieStatusIcon(movie);
+                    return (
+                      <div
+                        key={movie.tmdb_id}
+                        className="collection-item"
+                        onClick={() => handleCollectionMovieClick(movie)}
+                      >
+                        <div className="collection-item-title">{movie.title}</div>
+                        <div className="collection-item-meta">
+                          {statusIcon && (
+                            <span
+                              className="material-symbols-outlined collection-item-status"
+                              title={statusIcon.label}
+                            >
+                              {statusIcon.icon}
+                            </span>
+                          )}
+                          {movie.release_date && (
+                            <span className="chip">{movie.release_date.slice(0, 4)}</span>
+                          )}
+                          {movie.vote_average > 0 && (
+                            <span className="chip collection-item-rating">
+                              <span className="material-symbols-outlined">star</span>
+                              {movie.vote_average.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
           <div className="status-row">

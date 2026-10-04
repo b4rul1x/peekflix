@@ -12,10 +12,16 @@ from schemas import MovieCreate, MovieDetailsUpdate
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from tmdb import tmdb_get
+import re
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+
+def clean_collection_name(name: str) -> str:
+    if not name:
+        return name
+    return re.sub(r"\s*\|?\s*Колекція\s*$", "", name).strip()
 
 Base.metadata.create_all(bind=engine)
 run_migrations()
@@ -187,6 +193,8 @@ async def get_movie_details(tmdb_id: int):
     )
     cast = [person["name"] for person in credits.get("cast", [])[:5]]
 
+    collection = details.get("belongs_to_collection")
+
     return {
         "tmdb_id": details.get("id"),
         "title": details.get("title"),
@@ -199,7 +207,37 @@ async def get_movie_details(tmdb_id: int):
         "vote_average": details.get("vote_average"),
         "director": director,
         "cast": cast,
-        "trailer_key": trailer["key"] if trailer else None
+        "trailer_key": trailer["key"] if trailer else None,
+        "collection_id": collection["id"] if collection else None,
+        "collection_name": clean_collection_name(collection["name"]) if collection else None,
+    }
+
+@app.get("/collection/{collection_id}")
+async def get_collection(collection_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"https://api.themoviedb.org/3/collection/{collection_id}",
+            params={"api_key": TMDB_API_KEY, "language": "uk-UA"},
+        )
+
+    data = response.json()
+
+    parts = sorted(
+        data.get("parts", []),
+        key=lambda movie: movie.get("release_data") or "9999"
+    )
+
+    return {
+        "collection_name": clean_collection_name(data.get("name")),
+        "parts": [
+            {
+                "tmdb_id": movie.get("id"),
+                "title": movie.get("title"),
+                "release_date": movie.get("release_date"),
+                "vote_average": movie.get("vote_average"),
+            }
+            for movie in parts
+        ],
     }
 
 @app.get("/home/trending")

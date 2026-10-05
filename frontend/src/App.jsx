@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 
-const API_URL = import.meta.env.DEV
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV
   ? 'http://127.0.0.1:8000'
-  : 'https://peekflix-production.up.railway.app';
+  : 'https://peekflix-api.x0ryz.dev');
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 
 const STATUSES = {

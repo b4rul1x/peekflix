@@ -2,12 +2,14 @@ import os
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-if os.getenv("RAILWAY_ENVIRONMENT"):
-    DATEBASE_URL = "sqlite:////data/peekflix.db"
-else:
-    DATEBASE_URL = "sqlite:///./peekflix.db"
+DATABASE_URL = os.getenv("DATABASE_URL") or (
+    "sqlite:////data/peekflix.db"
+    if os.getenv("RAILWAY_ENVIRONMENT")
+    else "sqlite:///./peekflix.db"
+)
 
-engine = create_engine(DATEBASE_URL, connect_args={"check_same_thread": False})
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

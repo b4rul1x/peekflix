@@ -33,12 +33,6 @@ html, body {
   margin: 0;
 }
 
-.movie-meta {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin-bottom: 12px;
-}
-
 .rating-badge {
   display: inline-flex;
   align-items: center;
@@ -136,12 +130,6 @@ html, body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.section-label {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
 .overview-text {
   color: var(--text-muted);
   line-height: 1.5;
@@ -170,22 +158,9 @@ html, body {
   font-size: 13px;
 }
 
-.info-row-plain {
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.info-row-plain .info-label {
-  display: block;
-}
-
 .info-label {
   color: var(--text-muted);
   display: block;
-}
-
-.info-value {
-  color: var(--text);
 }
 
 .poster-column {
@@ -282,10 +257,6 @@ html, body {
 
 .icon-button:hover {
   color: var(--text);
-}
-
-.icon-button-active {
-  color: var(--accent);
 }
 
 .icon-button:disabled {
@@ -1130,12 +1101,6 @@ body {
   margin-bottom: 0 !important;
   background: var(--surface-hover) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.status-icon-inline {
-  font-size: 14px;
-  vertical-align: middle;
-  margin-right: 4px;
 }
 
 .collection-widget {

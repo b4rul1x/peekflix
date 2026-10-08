@@ -76,12 +76,14 @@ function HomeRow({ title, movies, onMovieClick, getPoster, getTitle, onSeeAll, g
     <div className="home-row">
       <div className="row-header">
         <div className="row-title">{title}</div>
-        <button className="row-see-all" onClick={onSeeAll}>
-          Усі
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-            chevron_right
-          </span>
-        </button>
+        {onSeeAll && (
+          <button className="row-see-all" onClick={onSeeAll}>
+            Усі
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              chevron_right
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="row-scroll">
@@ -160,6 +162,7 @@ function App() {
   const [collectionExpanded, setCollectionExpanded] = useState(false);
   const [collectionParts, setCollectionParts] = useState([]);
   const [movieHistory, setMovieHistory] = useState([]);
+  const [relatedMovies, setRelatedMovies] = useState([]);
   const [customCategory, setCustomCategory] = useState(null);
   const [filterStack, setFilterStack] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
@@ -239,6 +242,23 @@ function App() {
       }
     }
   }, [selectedMovie, expandedCategory]);
+
+  useEffect(() => {
+    setRelatedMovies([]);
+    if (!selectedMovie?.tmdb_id) return;
+
+    let cancelled = false;
+    fetch(`${API_URL}/movie/${selectedMovie.tmdb_id}/similar`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data) => {
+        if (!cancelled) setRelatedMovies(data);
+      })
+      .catch((error) => console.error('Не вдалось завантажити схожі фільми:', error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMovie?.tmdb_id]);
 
   useEffect(() => {
     if (selectedPerson) window.scrollTo(0, 0);
@@ -976,6 +996,18 @@ const getMovieStatusIcon = (movie) => {
           )}
 
           <p className="overview-text-full">{selectedMovie.overview}</p>
+          {relatedMovies.length > 0 && (
+            <div className="related-section">
+              <HomeRow
+                title="Схожі фільми"
+                movies={relatedMovies}
+                onMovieClick={handleCollectionMovieClick}
+                getPoster={(movie) => movie.poster_path}
+                getTitle={(movie) => movie.title}
+                getStatusIcon={getMovieStatusIcon}
+              />
+            </div>
+          )}
 
           {showTrailer && selectedMovie.trailer_key && (
             <div className="trailer-modal-overlay" onClick={() => setShowTrailer(false)}>

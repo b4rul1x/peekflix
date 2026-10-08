@@ -1370,3 +1370,11 @@ body {
   font-weight: 600;
   color: var(--text);
 }
+
+.related-section {
+  margin-top: 28px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 14px 14px 2px;
+}

@@ -258,6 +258,28 @@ async def get_movie_details(tmdb_id: int):
         "collection_name": clean_collection_name(collection["name"]) if collection else None,
     }
 
+@app.get("/movie/{tmdb_id}/similar")
+async def get_similar_movies(tmdb_id: int):
+    data = await tmdb_get(f"/movie/{tmdb_id}/recommendations", {"language": "uk-UA"})
+    results = data.get("results", [])
+
+    if len(results) < 6:
+        fallback = await tmdb_get(f"/movie/{tmdb_id}/similar", {"language": "uk-UA"})
+        seen = {movie["id"] for movie in results}
+        results += [m for m in fallback.get("results", []) if m["id"] not in seen]
+
+    return [
+        {
+            "tmdb_id": movie["id"],
+            "title": movie.get("title"),
+            "poster_path": movie.get("poster_path"),
+            "release_date": movie.get("release_date"),
+            "vote_average": movie.get("vote_average"),
+        }
+        for movie in results
+        if movie.get("poster_path")
+    ][:12]
+
 @app.get("/collection/{collection_id}")
 async def get_collection(collection_id: int):
     async with httpx.AsyncClient() as client:

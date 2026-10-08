@@ -185,6 +185,19 @@ html, body {
   font-size: 12px;
 }
 
+.chip-clickable {
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.chip-clickable:hover,
+.chip-clickable:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .overview-text-full {
   color: var(--text-muted);
   line-height: 1.6;
@@ -1242,4 +1255,118 @@ body {
 
 .collection-toggle-button.expanded .collection-chevron {
   transform: rotate(180deg);
+}
+
+.person-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.person-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 4px;
+}
+
+.person-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--text-muted);
+  color: var(--text-muted);
+}
+
+.person-photo-placeholder .material-symbols-outlined {
+  font-size: 48px;
+}
+
+.person-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.person-meta-line {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.person-bio {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0 0 4px;
+}
+
+.person-bio.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+.person-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.person-tab {
+  background: none;
+  border: 1px solid var(--text-muted);
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.person-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.person-bio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.person-bio-toggle .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.person-divider {
+  height: 1px;
+  background: var(--text-muted);
+  opacity: 0.3;
+  margin: 24px 0 16px;
+}
+
+.person-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
 }

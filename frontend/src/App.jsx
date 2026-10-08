@@ -4,6 +4,22 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV
   ? 'http://127.0.0.1:8000'
   : 'https://peekflix-api.x0ryz.dev');
 const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
+const TMDB_PROFILE_URL = 'https://image.tmdb.org/t/p/w185';
+
+const formatDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+const regionNames = new Intl.DisplayNames(['uk'], { type: 'region' });
+
+const getCountryName = (code, fallback) => {
+  try {
+    return regionNames.of(code) || fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 const STATUSES = {
   watching: { label: 'Дивлюся', icon: 'visibility' },
@@ -144,6 +160,12 @@ function App() {
   const [collectionExpanded, setCollectionExpanded] = useState(false);
   const [collectionParts, setCollectionParts] = useState([]);
   const [movieHistory, setMovieHistory] = useState([]);
+  const [customCategory, setCustomCategory] = useState(null);
+  const [filterStack, setFilterStack] = useState([]);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [personTab, setPersonTab] = useState('acted');
+  const [personBioExpanded, setPersonBioExpanded] = useState(false);
+  const [personVisibleCount, setPersonVisibleCount] = useState(20);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -212,11 +234,15 @@ function App() {
       }
     } else {
       previousMovieIdRef.current = null;
-      if (expandedCategory) {
+      if (expandedCategory && !selectedPerson) {
         window.scrollTo(0, expandedScrollPosition);
       }
     }
   }, [selectedMovie, expandedCategory]);
+
+  useEffect(() => {
+    if (selectedPerson) window.scrollTo(0, 0);
+  }, [selectedPerson]);
 
   useEffect(() => {
     if (openMenuId === null && openSearchMenuId === null) return;
@@ -447,8 +473,9 @@ const loadSimilar = async () => {
   setSimilarMovies(data.results);
 };
 
-const loadExpandedPage = async (key, page) => {
-  const category = CATEGORY_ENDPOINTS[key];
+const loadExpandedPage = async (key, page, categoryOverride = null) => {
+  const category =
+    categoryOverride ?? (key === 'custom' ? customCategory : CATEGORY_ENDPOINTS[key]);
   setExpandedLoading(true);
 
   const separator = category.url.includes('?') ? '&' : '?';
@@ -496,10 +523,51 @@ const handleOpenExpanded = (key) => {
   loadExpandedPage(key, 1);
 };
 
+const makeSnapshot = () => ({
+  movie: selectedMovie,
+  person: selectedPerson,
+  category: expandedCategory,
+  customCategory,
+  movies: expandedMovies,
+  page: expandedPage,
+  hasMore: expandedHasMore,
+  scroll: expandedScrollPosition,
+  history: movieHistory,
+});
+
+const restoreSnapshot = (snapshot) => {
+  setCustomCategory(snapshot.customCategory);
+  setExpandedCategory(snapshot.category);
+  setExpandedMovies(snapshot.movies);
+  setExpandedPage(snapshot.page);
+  setExpandedHasMore(snapshot.hasMore);
+  setExpandedScrollPosition(snapshot.scroll);
+  setMovieHistory(snapshot.history);
+  setSelectedPerson(snapshot.person);
+  setSelectedMovie(snapshot.movie);
+};
+
+const handleOpenFilter = (title, params) => {
+  setFilterStack((prev) => [...prev, makeSnapshot()]);
+  setSelectedPerson(null);
+  const queryString = new URLSearchParams(params).toString();
+  const category = { title, url: `/home/by-filter?${queryString}` };
+
+  setCustomCategory(category);
+  setExpandedScrollPosition(0);
+  setShowTrailer(false);
+  setSelectedMovie(null);
+  setExpandedCategory('custom');
+  setExpandedMovies([]);
+  setExpandedHasMore(false);
+  loadExpandedPage('custom', 1, category);
+};
+
 const getExpandedTitle = (key) => {
   if (key === 'continueWatching') return 'Продовжити перегляд';
   if (key === 'recommendations') return 'Рекомендації для вас';
   if (key === 'similar') return `Схоже на ${similarSourceTitle}`;
+  if (key === 'custom') return customCategory?.title ?? '';
   return CATEGORY_ENDPOINTS[key].title;
 };
 
@@ -508,7 +576,46 @@ const handleLoadMoreExpanded = () => {
 };
 
 const handleCloseExpanded = () => {
+  if (filterStack.length > 0) {
+    const snapshot = filterStack[filterStack.length - 1];
+    setFilterStack((prev) => prev.slice(0, -1));
+    restoreSnapshot(snapshot);
+    return;
+  }
   setExpandedCategory(null);
+};
+
+const handleOpenPerson = async (personId) => {
+  const response = await fetch(`${API_URL}/person/${personId}`);
+  if (!response.ok) {
+    console.error('Не вдалось завантажити людину:', response.status);
+    return;
+  }
+  const data = await response.json();
+
+  setFilterStack((prev) => [...prev, makeSnapshot()]);
+  setPersonTab(
+    data.known_for_department === 'Directing' && data.directed.length > 0
+      ? 'directed'
+      : data.acted.length > 0
+        ? 'acted'
+        : 'directed'
+  );
+  setPersonBioExpanded(false);
+  setPersonVisibleCount(20);
+  setShowTrailer(false);
+  setSelectedMovie(null);
+  setSelectedPerson(data);
+};
+
+const handleClosePerson = () => {
+  if (filterStack.length > 0) {
+    const snapshot = filterStack[filterStack.length - 1];
+    setFilterStack((prev) => prev.slice(0, -1));
+    restoreSnapshot(snapshot);
+    return;
+  }
+  setSelectedPerson(null);
 };
 
 const handleExpandedMovieClick = (movie) => {
@@ -587,6 +694,7 @@ const handleCollectionMovieClick = (movie) => {
 };
 
 const filteredMovies = myMovies.filter((movie) => movie.status === filterStatus);
+const personMovies = selectedPerson?.[personTab] ?? [];
 
 const handleSaveRating = async (movieId, newRating) => {
   const response = await fetch(`${API_URL}/movies/${movieId}/details`, {
@@ -663,22 +771,49 @@ const getMovieStatusIcon = (movie) => {
               <div className="info-row">
                 <span className="info-label">Рік випуску</span>
                 <div className="chip-group">
-                  <span className="chip">{selectedMovie.release_date?.slice(0, 4)}</span>
+                  {selectedMovie.release_date && (
+                    <button
+                      className="chip chip-clickable"
+                      onClick={() =>
+                        handleOpenFilter(
+                          `Фільми ${selectedMovie.release_date.slice(0, 4)} року`,
+                          { year: selectedMovie.release_date.slice(0, 4) }
+                        )
+                      }
+                    >
+                      {selectedMovie.release_date.slice(0, 4)}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="info-row">
                 <span className="info-label">Країна</span>
                 <div className="chip-group">
-                  {selectedMovie.countries?.map((country) => (
-                    <span key={country} className="chip">{country}</span>
-                  ))}
+                  {selectedMovie.countries?.map((country) => {
+                    const countryName = getCountryName(country.code, country.name);
+                    return (
+                      <button
+                        key={country.code}
+                        className="chip chip-clickable"
+                        onClick={() => handleOpenFilter(`Країна: ${countryName}`, { country: country.code })}
+                      >
+                        {countryName}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div className="info-row">
                 <span className="info-label">Жанр</span>
                 <div className="chip-group">
                   {selectedMovie.genres?.map((genre) => (
-                    <span key={genre} className="chip">{genre}</span>
+                    <button
+                      key={genre.id}
+                      className="chip chip-clickable"
+                      onClick={() => handleOpenFilter(`Жанр: ${genre.name}`, { genre_id: genre.id })}
+                    >
+                      {genre.name}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -691,14 +826,27 @@ const getMovieStatusIcon = (movie) => {
               <div className="info-row">
                 <span className="info-label">Режисер</span>
                 <div className="chip-group">
-                  <span className="chip">{selectedMovie.director}</span>
+                  {selectedMovie.director && (
+                    <button
+                      className="chip chip-clickable"
+                      onClick={() => handleOpenPerson(selectedMovie.director.id)}
+                    >
+                      {selectedMovie.director.name}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="info-row">
                 <span className="info-label">У головних ролях</span>
                 <div className="chip-group">
                   {selectedMovie.cast?.map((actor) => (
-                    <span key={actor} className="chip">{actor}</span>
+                    <button
+                      key={actor.id}
+                      className="chip chip-clickable"
+                      onClick={() => handleOpenPerson(actor.id)}
+                    >
+                      {actor.name}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -845,6 +993,124 @@ const getMovieStatusIcon = (movie) => {
                 ></iframe>
               </div>
             </div>
+          )}
+        </div>
+      ) : selectedPerson ? (
+        <div>
+          <div className="detail-header">
+            <button className="back-button" onClick={handleClosePerson}>
+              <span className="material-symbols-outlined">arrow_back</span>
+              Назад
+            </button>
+          </div>
+
+          <div className="person-header">
+            {selectedPerson.profile_path ? (
+              <img
+                className="person-photo"
+                src={`${TMDB_PROFILE_URL}${selectedPerson.profile_path}`}
+                alt={selectedPerson.name}
+              />
+            ) : (
+              <div className="person-photo person-photo-placeholder">
+                <span className="material-symbols-outlined">person</span>
+              </div>
+            )}
+            <div className="person-name">{selectedPerson.name}</div>
+            {selectedPerson.birthday && (
+              <div className="person-meta-line">
+                {formatDate(selectedPerson.birthday)}
+                {selectedPerson.deathday && ` — ${formatDate(selectedPerson.deathday)}`}
+              </div>
+            )}
+            {selectedPerson.place_of_birth && (
+              <div className="person-meta-line">{selectedPerson.place_of_birth}</div>
+            )}
+          </div>
+
+          {selectedPerson.biography ? (
+            <>
+              <p className={`person-bio ${personBioExpanded ? 'expanded' : ''}`}>
+                {selectedPerson.biography}
+              </p>
+              {selectedPerson.biography.length > 300 && (
+                <button
+                  className="person-bio-toggle"
+                  onClick={() => setPersonBioExpanded((v) => !v)}
+                >
+                  {personBioExpanded ? 'Згорнути' : 'Читати далі'}
+                  <span className="material-symbols-outlined">
+                    {personBioExpanded ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="placeholder-text">Біографія відсутня</p>
+          )}
+
+          <div className="person-divider" />
+          <div className="person-section-title">Фільмографія</div>
+          <div className="person-tabs">
+            {selectedPerson.directed.length > 0 && (
+              <button
+                className={`person-tab ${personTab === 'directed' ? 'active' : ''}`}
+                onClick={() => {
+                  setPersonTab('directed');
+                  setPersonVisibleCount(20);
+                }}
+              >
+                Режисер ({selectedPerson.directed.length})
+              </button>
+            )}
+            {selectedPerson.acted.length > 0 && (
+              <button
+                className={`person-tab ${personTab === 'acted' ? 'active' : ''}`}
+                onClick={() => {
+                  setPersonTab('acted');
+                  setPersonVisibleCount(20);
+                }}
+              >
+                Актор ({selectedPerson.acted.length})
+              </button>
+            )}
+          </div>
+
+          <div className="expanded-grid">
+            {personMovies.slice(0, personVisibleCount).map((movie) => {
+              const statusIcon = getMovieStatusIcon(movie);
+              return (
+                <div
+                  key={movie.tmdb_id}
+                  className="poster-card"
+                  onClick={() => handleOpenDetails(movie.tmdb_id)}
+                >
+                  {movie.poster_path && (
+                    <img
+                      className="poster-card-image"
+                      src={`${TMDB_IMAGE_URL}${movie.poster_path}`}
+                      alt={movie.title}
+                    />
+                  )}
+                  {statusIcon && (
+                    <div className="poster-status-badge" title={statusIcon.label}>
+                      <span className="material-symbols-outlined">{statusIcon.icon}</span>
+                    </div>
+                  )}
+                  <div className="poster-card-title">{movie.title}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {personMovies.length > personVisibleCount && (
+            <button
+              className="row-see-all"
+              style={{ margin: '16px auto', display: 'block' }}
+              onClick={() => setPersonVisibleCount((c) => c + 20)}
+            >
+              Показати ще
+            </button>
           )}
         </div>
       ) : expandedCategory ? (

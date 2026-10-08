@@ -270,7 +270,7 @@ async def get_collection(collection_id: int):
 
     parts = sorted(
         data.get("parts", []),
-        key=lambda movie: movie.get("release_data") or "9999"
+        key=lambda movie: movie.get("release_date") or "9999"
     )
 
     return {

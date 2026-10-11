@@ -1,25 +1,57 @@
 import { useState } from "react";
 import DonutChart from "../components/DonutChart";
+import LevelsModal from "../components/LevelsModal";
 import { TMDB_IMAGE_URL, STATUSES, STATUS_COLORS } from "../constants";
+import { getLevelInfo } from "../levels";
 
 function ProfileScreen({ username, userPhoto, profileStats, recentMovies, onOpenMovie }) {
   const [selectedStatKey, setSelectedStatKey] = useState(null);
+  const [levelsOpen, setLevelsOpen] = useState(false);
 
   const toggleStat = (key) => setSelectedStatKey((prev) => (prev === key ? null : key));
 
+  const COUNTED_STATUSES = ["watched", "favorite"];
+
+  const watchedCount = (profileStats?.by_status ?? [])
+    .filter((s) => COUNTED_STATUSES.includes(s.status))
+    .reduce((sum, s) => sum + s.count, 0);
+
+  const { current, next, progress, done, range, level } = getLevelInfo(watchedCount);
+
   return (
     <div className="profile-screen">
-      <div className="profile-user-card">
-        {userPhoto ? (
-          <img className="profile-avatar" src={userPhoto} alt={username} />
-        ) : (
-          <div className="profile-avatar profile-avatar-placeholder">
-            <span className="material-symbols-outlined">person</span>
+      <div className="profile-card profile-header">
+        <div className="profile-header-top">
+          {userPhoto ? (
+            <img className="profile-avatar" src={userPhoto} alt={username} />
+          ) : (
+            <div className="profile-avatar profile-avatar-placeholder">
+              <span className="material-symbols-outlined">person</span>
+            </div>
+          )}
+          <div className="profile-header-info">
+            <div className="profile-header-name">{username}</div>
+            <div className="profile-level-chip" onClick={() => setLevelsOpen(true)}>
+              <span className="material-symbols-outlined">military_tech</span>
+              Рівень {level} · {current.name}
+            </div>
           </div>
-        )}
-        <div className="profile-user-info">
-          <div className="profile-name">{username}</div>
-          <div className="profile-badge">Кіноман</div>
+        </div>
+
+        <div className="level-progress" onClick={() => setLevelsOpen(true)}>
+          <div className="level-progress-bar">
+            <div className="level-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="level-progress-row">
+            {next ? (
+              <>
+                <span>{done} / {range}</span>
+                <span>До рівня «{next.name}»</span>
+              </>
+            ) : (
+              <span>Максимальний рівень</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -94,6 +126,13 @@ function ProfileScreen({ username, userPhoto, profileStats, recentMovies, onOpen
           </div>
         )}
       </div>
+      {levelsOpen && (
+        <LevelsModal
+          watchedCount={watchedCount}
+          currentLevel={level}
+          onClose={() => setLevelsOpen(false)}
+        />
+      )}
     </div>
   );
 }

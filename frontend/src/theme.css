@@ -1378,3 +1378,178 @@ body {
   border-radius: var(--radius);
   padding: 14px 14px 2px;
 }
+
+.profile-header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-header-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.profile-header-name {
+  max-width: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-level-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(224, 72, 62, 0.15);
+  color: #E0483E;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-level-chip .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.level-progress {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.level-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #2A2A34;
+  overflow: hidden;
+}
+
+.level-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #E0483E;
+  transition: width 0.4s ease;
+}
+
+.level-progress-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.profile-level-chip,
+.level-progress {
+  cursor: pointer;
+}
+
+.levels-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* вище за нижню навігацію */
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.levels-sheet {
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 16px 16px 24px;
+  border-radius: 20px 20px 0 0;
+  background: #1C1C24;
+  animation: levels-slide-up 0.25s ease;
+}
+
+@keyframes levels-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.levels-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.levels-sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.levels-close {
+  display: flex;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.levels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.level-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #23232D;
+  border: 1px solid transparent;
+}
+
+.level-item.locked {
+  opacity: 0.55;
+}
+
+.level-item.reached .level-item-icon {
+  color: #66BB6A;
+}
+
+.level-item.current {
+  border-color: #E0483E;
+  background: rgba(224, 72, 62, 0.1);
+}
+
+.level-item.current .level-item-icon {
+  color: #E0483E;
+}
+
+.level-item-info {
+  text-align: center;
+}
+
+.level-item-name {
+  font-weight: 600;
+}
+
+.level-item-req {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.level-item-note {
+  justify-self: end;
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.level-item-icon {
+  justify-self: start;
+}

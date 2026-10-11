@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fetchJson } from "../api";
 
-function CollectionWidget({ collectionId, collectionName, onMovieClick, getStatusIcon }) {
+function CollectionWidget({ collectionId, collectionName, currentTmdbId, onMovieClick, getStatusIcon }) {
   const [expanded, setExpanded] = useState(false);
   const [parts, setParts] = useState([]);
 
@@ -41,11 +41,14 @@ function CollectionWidget({ collectionId, collectionName, onMovieClick, getStatu
           <div className="collection-panel">
             {parts.map((movie) => {
               const statusIcon = getStatusIcon(movie);
+              const isCurrent = movie.tmdb_id === currentTmdbId;
               return (
                 <div
                   key={movie.tmdb_id}
-                  className="collection-item"
-                  onClick={() => onMovieClick(movie)}
+                  className={`collection-item ${isCurrent ? 'current' : ''}`}
+                  onClick={() => {
+                    if (!isCurrent) onMovieClick(movie);
+                  }}
                 >
                   <div className="collection-item-title">{movie.title}</div>
                   <div className="collection-item-meta">

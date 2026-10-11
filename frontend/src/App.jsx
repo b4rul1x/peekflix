@@ -508,7 +508,7 @@ function App() {
   const addedIds = myMovies.map((movie) => movie.tmdb_id);
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: selectedMovie ? "0 20px 20px" : "20px" }}>
       {selectedMovie ? (
         <MovieDetailScreen
           key={selectedMovie.tmdb_id}

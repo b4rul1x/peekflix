@@ -1,7 +1,13 @@
 import { TMDB_IMAGE_URL } from "../constants";
-import { getCountryName } from "../utils";
 
-function MovieHeader({ movie, onOpenFilter, onOpenPerson }) {
+function formatRuntime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} хв`;
+  return rest ? `${hours} г ${rest} хв` : `${hours} г`;
+}
+
+function MovieHeader({ movie, onOpenFilter }) {
   const year = movie.release_date?.slice(0, 4);
 
   return (
@@ -14,98 +20,38 @@ function MovieHeader({ movie, onOpenFilter, onOpenPerson }) {
             alt={movie.title}
           />
         )}
+        <span className="rating-badge">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>star</span>
+          {movie.vote_average?.toFixed(1)}
+        </span>
       </div>
 
       <div className="movie-info">
-        <div className="title-row">
-          <div className="movie-title">{movie.title}</div>
-          <span className="rating-badge">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>star</span>
-            {movie.vote_average?.toFixed(1)}
-          </span>
+        <div className="movie-title">{movie.title}</div>
+
+        <div className="movie-meta">
+          {year && (
+            <button
+              className="year-link"
+              onClick={() => onOpenFilter(`Фільми ${year} року`, { year })}
+            >
+              {year}
+            </button>
+          )}
+          {year && movie.runtime ? <span>·</span> : null}
+          {movie.runtime ? <span>{formatRuntime(movie.runtime)}</span> : null}
         </div>
 
-        <div className="info-row">
-          <span className="info-label">Рік випуску</span>
-          <div className="chip-group">
-            {year && (
-              <button
-                className="chip chip-clickable"
-                onClick={() => onOpenFilter(`Фільми ${year} року`, { year })}
-              >
-                {year}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="info-row">
-          <span className="info-label">Країна</span>
-          <div className="chip-group">
-            {movie.countries?.map((country) => {
-              const countryName = getCountryName(country.code, country.name);
-              return (
-                <button
-                  key={country.code}
-                  className="chip chip-clickable"
-                  onClick={() => onOpenFilter(`Країна: ${countryName}`, { country: country.code })}
-                >
-                  {countryName}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="info-row">
-          <span className="info-label">Жанр</span>
-          <div className="chip-group">
-            {movie.genres?.map((genre) => (
-              <button
-                key={genre.id}
-                className="chip chip-clickable"
-                onClick={() => onOpenFilter(`Жанр: ${genre.name}`, { genre_id: genre.id })}
-              >
-                {genre.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="info-row">
-          <span className="info-label">Тривалість</span>
-          <div className="chip-group">
-            <span className="chip">{movie.runtime} хв</span>
-          </div>
-        </div>
-
-        <div className="info-row">
-          <span className="info-label">Режисер</span>
-          <div className="chip-group">
-            {movie.director && (
-              <button
-                className="chip chip-clickable"
-                onClick={() => onOpenPerson(movie.director.id)}
-              >
-                {movie.director.name}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="info-row">
-          <span className="info-label">У головних ролях</span>
-          <div className="chip-group">
-            {movie.cast?.map((actor) => (
-              <button
-                key={actor.id}
-                className="chip chip-clickable"
-                onClick={() => onOpenPerson(actor.id)}
-              >
-                {actor.name}
-              </button>
-            ))}
-          </div>
+        <div className="genre-row">
+          {movie.genres?.map((genre) => (
+            <button
+              key={genre.id}
+              className="chip chip-clickable"
+              onClick={() => onOpenFilter(`Жанр: ${genre.name}`, { genre_id: genre.id })}
+            >
+              {genre.name}
+            </button>
+          ))}
         </div>
       </div>
     </div>

@@ -1477,14 +1477,20 @@ body {
   left: 50%;
   width: 100vw;
   height: 560px;
-  transform: translateX(-50%) scale(1.3);
-  background-size: cover;
-  background-position: center top;
-  filter: blur(32px) brightness(0.55) saturate(1.2);
+  transform: translateX(-50%);
+  overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
   z-index: -1;
   pointer-events: none;
+}
+
+.detail-backdrop-image {
+  position: absolute;
+  inset: -60px;
+  background-size: cover;
+  background-position: center top;
+  filter: blur(32px) brightness(0.55) saturate(1.2);
 }
 
 .movie-topbar {
@@ -1678,25 +1684,22 @@ body {
 .overview-text-full {
   margin: 0;
   text-align: left;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
+  line-height: 1.55;
+  max-height: calc(1.55em * 3 + 0.6em);
   overflow: hidden;
+  transition: max-height 0.35s ease;
 }
 
-.overview-text-full.expanded {
-  display: block;
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  overflow: visible;
+.overview-text-full.clamped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1em), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1em), transparent);
 }
 
 .overview-toggle {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-top: 6px;
+  margin-top: 2px;
   padding: 4px 0;
   background: none;
   border: none;
@@ -1725,8 +1728,6 @@ body {
   border: none;
   padding: 0;
 }
-
-/* ===== Redesign: кнопка трейлера ===== */
 
 .trailer-button {
   background: var(--accent);
@@ -1780,8 +1781,6 @@ body {
   transition: none;
 }
 
-/* ===== Redesign: широкий екран (дві колонки) ===== */
-
 @media (min-width: 768px) {
   .detail-screen {
     max-width: 960px;
@@ -1798,7 +1797,6 @@ body {
     display: contents;
   }
 
-  /* ліва колонка */
   .poster-column,
   .trailer-button,
   .status-row {
@@ -1827,7 +1825,6 @@ body {
     padding: 8px 4px;
   }
 
-  /* права колонка */
   .movie-info,
   .rating-card,
   .collection-widget,
@@ -1857,4 +1854,25 @@ body {
 
 body {
   overflow-x: hidden;
+}
+
+@keyframes ratingAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 140px;
+  }
+}
+
+.rating-card {
+  overflow: hidden;
+  animation: ratingAppear 0.35s ease-out;
 }

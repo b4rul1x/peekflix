@@ -25,6 +25,7 @@ function MovieDetailScreen({
   const [overviewExpanded, setOverviewExpanded] = useState(false);
   const [overviewOverflows, setOverviewOverflows] = useState(false);
   const overviewRef = useRef(null);
+  const [overviewHeight, setOverviewHeight] = useState(0);
 
   useEffect(() => {
     if (!movie.tmdb_id) return;
@@ -46,8 +47,8 @@ function MovieDetailScreen({
     if (!el) return;
 
     const check = () => {
-      if (overviewExpanded) return;
-      setOverviewOverflows(el.scrollHeight > el.clientHeight + 1);
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      setOverviewOverflows(el.scrollHeight > lineHeight * 3 + 1);
     };
 
     check();
@@ -55,15 +56,17 @@ function MovieDetailScreen({
     document.fonts?.ready.then(check);
 
     return () => window.removeEventListener("resize", check);
-  }, [movie.overview, overviewExpanded]);
+  }, [movie.overview]);
 
   return (
     <div className="detail-screen">
       {movie.poster_path && (
-        <div
-          className="detail-backdrop"
-          style={{ backgroundImage: `url(${TMDB_IMAGE_URL}${movie.poster_path})` }}
-        />
+        <div className="detail-backdrop">
+          <div
+            className="detail-backdrop-image"
+            style={{ backgroundImage: `url(${TMDB_IMAGE_URL}${movie.poster_path})` }}
+          />
+        </div>
       )}
 
       <div className="movie-topbar">
@@ -112,14 +115,22 @@ function MovieDetailScreen({
         <div className="overview-block">
           <p
             ref={overviewRef}
-            className={`overview-text-full ${overviewExpanded ? "expanded" : ""}`}
+            className={`overview-text-full ${overviewExpanded ? "expanded" : ""} ${
+              overviewOverflows && !overviewExpanded ? "clamped" : ""
+            }`}
+            style={overviewExpanded ? { maxHeight: overviewHeight } : undefined}
           >
             {movie.overview}
           </p>
           {overviewOverflows && (
             <button
               className="overview-toggle"
-              onClick={() => setOverviewExpanded((v) => !v)}
+              onClick={() => {
+                if (!overviewExpanded && overviewRef.current) {
+                  setOverviewHeight(overviewRef.current.scrollHeight);
+                }
+                setOverviewExpanded((v) => !v);
+              }}
             >
               {overviewExpanded ? "Згорнути" : "Читати далі"}
               <span className="material-symbols-outlined">

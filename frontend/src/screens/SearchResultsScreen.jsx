@@ -10,18 +10,21 @@ function SearchResultsScreen({
   onAdd,
 }) {
   return (
-    <div>
-      <div className="detail-header">
+    <div className="results-screen">
+      <div className="movie-topbar expanded-topbar">
         <button className="back-button" onClick={onBack}>
           <span className="material-symbols-outlined">arrow_back</span>
           Назад
         </button>
+        <span className="movie-topbar-title">Результати</span>
+        <span />
       </div>
 
       {results.length > 0 ? (
         results.map((movie) => (
           <SearchResultCard
             key={movie.id}
+            detailed
             movie={movie}
             isAdded={addedIds.includes(movie.id)}
             isMenuOpen={openSearchMenuId === movie.id}
@@ -31,7 +34,10 @@ function SearchResultsScreen({
           />
         ))
       ) : (
-        <div className="placeholder-text">Нічого не знайдено</div>
+        <div className="search-empty results-empty">
+          Нічого не знайдено
+          <div className="results-empty-hint">Спробуйте іншу назву</div>
+        </div>
       )}
     </div>
   );

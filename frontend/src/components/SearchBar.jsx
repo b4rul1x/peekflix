@@ -7,12 +7,18 @@ function SearchBar({
   onFocus,
   showDropdown,
   results,
+  isSearching,
   addedIds,
   openSearchMenuId,
   onOpenMovie,
   onToggleMenu,
   onAdd,
 }) {
+
+  const showResults = showDropdown && results.length > 0;
+  const showEmpty =
+    showDropdown && !isSearching && results.length === 0 && query.trim() !== "";
+    
   return (
     <div className="search-bar" onClick={(e) => e.stopPropagation()}>
       <button className="search-icon-button" onClick={onSubmit}>
@@ -28,19 +34,23 @@ function SearchBar({
         className="search-input"
       />
 
-      {showDropdown && results.length > 0 && (
+      {(showResults || showEmpty) && (
         <div className="search-dropdown">
-          {results.map((movie) => (
-            <SearchResultCard
-              key={movie.id}
-              movie={movie}
-              isAdded={addedIds.includes(movie.id)}
-              isMenuOpen={openSearchMenuId === movie.id}
-              onOpen={() => onOpenMovie(movie)}
-              onToggleMenu={() => onToggleMenu(movie.id)}
-              onAdd={(status) => onAdd(movie, status)}
-            />
-          ))}
+          {showResults ? (
+            results.map((movie) => (
+              <SearchResultCard
+                key={movie.id}
+                movie={movie}
+                isAdded={addedIds.includes(movie.id)}
+                isMenuOpen={openSearchMenuId === movie.id}
+                onOpen={() => onOpenMovie(movie)}
+                onToggleMenu={() => onToggleMenu(movie.id)}
+                onAdd={(status) => onAdd(movie, status)}
+              />
+            ))
+          ) : (
+            <div className="search-empty">Нічого не знайдено</div>
+          )}
         </div>
       )}
     </div>

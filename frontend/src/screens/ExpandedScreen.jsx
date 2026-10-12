@@ -12,13 +12,14 @@ function ExpandedScreen({
 }) {
   return (
     <div>
-      <div className="expanded-header">
+      <div className="movie-topbar expanded-topbar">
         <button className="back-button" onClick={onBack}>
           <span className="material-symbols-outlined">arrow_back</span>
           Назад
         </button>
 
-        <div className="app-header">{title}</div>
+        <span className="movie-topbar-title">{title}</span>
+        <span />
       </div>
 
       <div className="expanded-grid">

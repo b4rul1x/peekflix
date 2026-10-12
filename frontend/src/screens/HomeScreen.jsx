@@ -1,4 +1,5 @@
 import HomeRow from "../components/HomeRow";
+import HeroCard from "../components/HeroCard";
 import { GENRE } from "../constants";
 
 function HomeScreen({
@@ -16,6 +17,12 @@ function HomeScreen({
 }) {
   return (
     <>
+      {trending.length > 0 && (
+        <HeroCard
+          movie={trending[0]}
+          onClick={() => onOpenDetails(trending[0].id)}
+        />
+      )}
       {continueWatching.length > 0 && (
         <HomeRow
           title="Продовжити перегляд"

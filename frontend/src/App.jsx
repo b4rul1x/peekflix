@@ -25,6 +25,7 @@ function App() {
   const [results, setResults] = useState([]);
   const [openSearchMenuId, setOpenSearchMenuId] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [myMovies, setMyMovies] = useState([]);
   const [continueWatching, setContinueWatching] = useState([]);
@@ -127,11 +128,13 @@ function App() {
 
   const handleSearch = async () => {
     if (!query.trim()) return;
+    setIsSearching(true);
     const data = await fetchJson(
       `/search?query=${encodeURIComponent(query)}`,
       'Помилка запиту:'
     );
     if (data) setResults(data);
+    setIsSearching(false);
   };
 
   useEffect(() => {
@@ -508,7 +511,10 @@ function App() {
   const addedIds = myMovies.map((movie) => movie.tmdb_id);
 
   return (
-    <div style={{ padding: selectedMovie ? "0 20px 20px" : "20px" }}>
+    <div
+      className={selectedMovie ? undefined : "app-shell"}
+      style={{ padding: selectedMovie ? "0 20px 20px" : "20px" }}
+    >
       {selectedMovie ? (
         <MovieDetailScreen
           key={selectedMovie.tmdb_id}
@@ -577,6 +583,7 @@ function App() {
                 onFocus={() => results.length > 0 && setShowDropdown(true)}
                 showDropdown={showDropdown}
                 results={results}
+                isSearching={isSearching}
                 addedIds={addedIds}
                 openSearchMenuId={openSearchMenuId}
                 onOpenMovie={(movie) => {
@@ -629,6 +636,8 @@ function App() {
               onOpenMovie={(movie) => handleOpenDetails(movie.tmdb_id, movie)}
             />
           )}
+
+          <div className="nav-spacer" />
 
           <div className="bottom-nav">
             <button

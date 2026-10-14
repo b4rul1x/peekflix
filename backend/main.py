@@ -102,23 +102,27 @@ async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Цей фільм вже є у вашому списку")
 
     runtime = movie.runtime
+    release_date = None
+    vote_average = None
 
-    if runtime is None:
-        try:
-            async with httpx.AsyncClient() as client:
-                details_response = await client.get(
-                    f"https://api.themoviedb.org/3/movie/{movie.tmdb_id}",
-                    params={"api_key": TMDB_API_KEY},
-                    timeout=5.0
-                )
+    try:
+        async with httpx.AsyncClient() as client:
+            details_response = await client.get(
+                f"https://api.themoviedb.org/3/movie/{movie.tmdb_id}",
+                params={"api_key": TMDB_API_KEY},
+                timeout=5.0
+            )
 
-            if details_response.status_code == 200:
-                details = details_response.json()
+        if details_response.status_code == 200:
+            details = details_response.json()
+            if runtime is None:
                 runtime = details.get("runtime")
-            else:
-                print(f"TMDB API повернув помилку {details_response.status_code}: {details_response.text}")
-        except Exception as e:
-            print(f"Помилка з'єднання з TMDB API: {e}")
+            release_date = details.get("release_date") or None
+            vote_average = details.get("vote_average")
+        else:
+            print(f"TMDB API повернув помилку {details_response.status_code}: {details_response.text}")
+    except Exception as e:
+        print(f"Помилка з'єднання з TMDB API: {e}")
 
     new_movie = models.Movie(
         tmdb_id=movie.tmdb_id,
@@ -127,6 +131,8 @@ async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
         user_id=movie.user_id,
         status=movie.status,
         runtime=runtime,
+        release_date=release_date,
+        vote_average=vote_average,
     )
     db.add(new_movie)
     db.commit()

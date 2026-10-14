@@ -24,7 +24,14 @@ def run_migrations():
     inspector = inspect(engine)
     existing_columns = [col["name"] for col in inspector.get_columns("movies")]
 
-    if "runtime" not in existing_columns:
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE movies ADD COLUMN runtime INTEGER"))
-            conn.commit()
+    new_columns = {
+        "runtime": "INTEGER",
+        "release_date": "VARCHAR",
+        "vote_average": "FLOAT",
+    }
+
+    with engine.connect() as conn:
+        for name, sql_type in new_columns.items():
+            if name not in existing_columns:
+                conn.execute(text(f"ALTER TABLE movies ADD COLUMN {name} {sql_type}"))
+        conn.commit()

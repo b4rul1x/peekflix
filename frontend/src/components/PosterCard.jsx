@@ -1,12 +1,12 @@
 import { TMDB_IMAGE_URL } from "../constants";
 
-function PosterCard({ movie, onClick, statusIcon }) {
+function PosterCard({ movie, onClick, statusIcon, style }) {
 
   const year = movie.release_date?.slice(0, 4);
   const rating = movie.vote_average;
 
   return (
-    <div className="poster-card" onClick={onClick}>
+    <div className="poster-card" onClick={onClick} style={style}>
       {movie.poster_path && (
         <img
           className="poster-card-image"

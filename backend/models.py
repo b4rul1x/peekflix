@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, Float
 from database import Base
 
 class Movie(Base):
@@ -12,3 +12,5 @@ class Movie(Base):
     status = Column(String, default="watched")
     user_rating = Column(Integer, nullable=True)
     runtime = Column(Integer, nullable=True)
+    release_date = Column(String, nullable=True)
+    vote_average = Column(Float, nullable=True)

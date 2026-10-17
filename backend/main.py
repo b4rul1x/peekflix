@@ -513,5 +513,5 @@ def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/profile/recent/{user_id}")
 def get_recent_movies(user_id: int, db: Session = Depends(get_db)):
-    movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(5).all()
+    movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(6).all()
     return movies

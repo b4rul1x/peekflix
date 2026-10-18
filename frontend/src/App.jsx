@@ -432,6 +432,7 @@ function App() {
   };
 
   const handleTabChange = (tab) => {
+    window.scrollTo(0, 0);
     setActiveTab(tab);
     if (tab === "mylist") {
       loadMyMovies();

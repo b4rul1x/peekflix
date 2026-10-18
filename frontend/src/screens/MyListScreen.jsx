@@ -40,7 +40,10 @@ function MyListScreen({
   onDelete,
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('myListViewMode');
+    return saved === 'grid' ? 'grid' : 'list';
+  });
   const [sortBy, setSortBy] = useState('recent');
   const [sortOpen, setSortOpen] = useState(false);
 
@@ -57,6 +60,10 @@ function MyListScreen({
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, [sortOpen]);
+
+  useEffect(() => {
+    localStorage.setItem('myListViewMode', viewMode);
+  }, [viewMode]);
 
   const filteredMovies = myMovies
     .filter((movie) => movie.status === filterStatus)

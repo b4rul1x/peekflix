@@ -142,12 +142,53 @@ function MyListScreen({
       ) : viewMode === 'grid' ? (
         <div className="expanded-grid my-list-grid">
           {filteredMovies.map((movie, index) => (
-            <PosterCard
+            <div
               key={`${movie.id}-${sortBy}`}
-              movie={movie}
-              onClick={() => onOpenMovie(movie)}
+              className={`poster-wrap ${openMenuId === movie.id ? 'menu-open' : ''}`}
               style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-            />
+            >
+              <PosterCard movie={movie} onClick={() => onOpenMovie(movie)} />
+
+              <div className="poster-menu-wrap" onClick={(e) => e.stopPropagation()}>
+                <div className="card-actions-menu poster-actions-menu">
+                  <button
+                    className="card-actions-menu-item"
+                    onClick={() => setOpenMenuId((prev) => (prev === movie.id ? null : movie.id))}
+                  >
+                    <span className="material-symbols-outlined">more_vert</span>
+                  </button>
+
+                  {openMenuId === movie.id && (
+                    <>
+                      {Object.entries(STATUSES).map(([key, { icon, label }]) => (
+                        <button
+                          key={key}
+                          className={`card-actions-menu-item poster-menu-item-anim ${key === movie.status ? 'active' : ''}`}
+                          title={label}
+                          onClick={() => {
+                            if (key === movie.status) return;
+                            onChangeStatus(movie.id, key);
+                            setOpenMenuId(null);
+                          }}
+                        >
+                          <span className="material-symbols-outlined">{icon}</span>
+                        </button>
+                      ))}
+                      <button
+                        className="card-actions-menu-item poster-menu-item-anim card-actions-menu-delete"
+                        title="Видалити"
+                        onClick={() => {
+                          onDelete(movie.id);
+                          setOpenMenuId(null);
+                        }}
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

@@ -32,6 +32,7 @@ function App() {
   const [trending, setTrending] = useState([]);
   const [topRated, setTopRated] = useState([]);
   const [nowPlaying, setNowPlaying] = useState([]);
+  const [upcoming, setUpcoming] = useState([]); 
 
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [expandedMovies, setExpandedMovies] = useState([]);
@@ -42,6 +43,8 @@ function App() {
   const previousMovieIdRef = useRef(null);
 
   const [genreMovies, setGenreMovies] = useState([]);
+  const [genreInfo, setGenreInfo] = useState({ id: GENRE.id, title: GENRE.title });
+  const [collections, setCollections] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [similarMovies, setSimilarMovies] = useState([]);
   const [similarSourceTitle, setSimilarSourceTitle] = useState(null);
@@ -87,7 +90,9 @@ function App() {
     loadTrending();
     loadTopRated();
     loadNowPlaying();
+    loadUpcoming();
     loadGenreMovies();
+    loadCollections();
   }, []);
 
   useEffect(() => {
@@ -99,6 +104,7 @@ function App() {
     loadContinueWatching();
     loadRecommendations();
     loadSimilar();
+    loadFavoriteGenre();
   }, [userId]);
 
   useEffect(() => {
@@ -252,6 +258,11 @@ function App() {
     if (data) setNowPlaying(data.results);
   };
 
+  const loadUpcoming = async () => {
+    const data = await fetchJson('/home/upcoming', 'Не вдалось завантажити скоро вийде:');
+    if (data) setUpcoming(data.results);
+  };
+
   const loadContinueWatching = async () => {
     const data = await fetchJson(
       `/home/continue-watching/${userId}`,
@@ -266,6 +277,25 @@ function App() {
       'Не вдалось завантажити жанр:'
     );
     if (data) setGenreMovies(data.results);
+  };
+
+  const loadFavoriteGenre = async () => {
+    const data = await fetchJson(
+      `/home/favorite-genre/${userId}`,
+      'Не вдалось завантажити улюблений жанр:'
+    );
+    if (data && data.personalized) {
+      setGenreInfo({
+        id: data.genre_id,
+        title: `Улюблений жанр: ${data.genre_name}`,
+      });
+      setGenreMovies(data.results);
+    }
+  };
+
+  const loadCollections = async () => {
+    const data = await fetchJson('/home/collections', 'Не вдалось завантажити колекції:');
+    if (data) setCollections(data);
   };
 
   const loadRecommendations = async () => {
@@ -356,11 +386,10 @@ function App() {
     setSelectedMovie(snapshot.movie);
   };
 
-  const handleOpenFilter = (title, params) => {
+  const handleOpenCategory = (title, url) => {
     setFilterStack((prev) => [...prev, makeSnapshot()]);
     setSelectedPerson(null);
-    const queryString = new URLSearchParams(params).toString();
-    const category = { title, url: `/home/by-filter?${queryString}` };
+    const category = { title, url };
 
     setCustomCategory(category);
     setExpandedScrollPosition(0);
@@ -369,6 +398,15 @@ function App() {
     setExpandedMovies([]);
     setExpandedHasMore(false);
     loadExpandedPage("custom", 1, category);
+  };
+
+  const handleOpenFilter = (title, params) => {
+    const queryString = new URLSearchParams(params).toString();
+    handleOpenCategory(title, `/home/by-filter?${queryString}`);
+  };
+
+  const handleOpenCollection = (collection) => {
+    handleOpenCategory(collection.name, `/home/collection/${collection.id}`);
   };
 
   const getExpandedTitle = (key) => {
@@ -606,7 +644,13 @@ function App() {
                 trending={trending}
                 topRated={topRated}
                 nowPlaying={nowPlaying}
+                upcoming={upcoming}
                 genreMovies={genreMovies}
+                genreId={genreInfo.id}
+                genreTitle={genreInfo.title}
+                collections={collections}
+                onOpenFilter={handleOpenFilter}
+                onOpenCollection={handleOpenCollection}
                 recommendations={recommendations}
                 similarMovies={similarMovies}
                 similarSourceTitle={similarSourceTitle}

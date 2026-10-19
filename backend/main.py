@@ -15,6 +15,10 @@ from tmdb import tmdb_get
 import re
 from typing import Optional
 import asyncio
+from datetime import date, timedelta
+from featured import FEATURED_COLLECTIONS
+import random
+from collections import Counter
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -393,6 +397,23 @@ async def get_now_playing(page: int = 1):
     data = await tmdb_get("/movie/now_playing", {"language": "uk-UA", "page": page})
     return data
 
+@app.get("/home/upcoming")
+async def get_upcoming(page: int = 1):
+    today = date.today()
+
+    data = await tmdb_get("/discover/movie", {
+        "language": "uk-UA",
+        "page": page,
+        "sort_by": "popularity.desc",
+        "primary_release_date.gte": today.isoformat(),
+        "primary_release_date.lte": (today + timedelta(days=90)).isoformat(),
+        "with_release_type": "2|3",
+        "include_adult": "false",
+    })
+
+    data["results"].sort(key=lambda m: m.get("release_date") or "9999")
+    return data
+
 @app.get("/home/continue-watching/{user_id}")
 def get_continue_watching(user_id, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(
@@ -515,3 +536,91 @@ def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
 def get_recent_movies(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(6).all()
     return movies
+
+_collection_cache = {}
+
+
+async def _load_collection_card(collection_id: int):
+    if collection_id in _collection_cache:
+        return _collection_cache[collection_id]
+    try:
+        data = await tmdb_get(f"/collection/{collection_id}", {"language": "uk-UA"})
+    except Exception:
+        return None
+    if not data or not data.get("id") or not data.get("parts"):
+        return None
+
+    card = {
+        "id": data["id"],
+        "name": clean_collection_name(data.get("name") or ""),
+        "backdrop_path": data.get("backdrop_path"),
+        "poster_path": data.get("poster_path"),
+        "count": len(data["parts"]),
+    }
+    _collection_cache[collection_id] = card
+    return card
+
+
+@app.get("/home/collections")
+async def get_featured_collections():
+    ids = random.sample(FEATURED_COLLECTIONS, 10)
+    cards = await asyncio.gather(*[_load_collection_card(i) for i in ids])
+    return [c for c in cards if c and (c["backdrop_path"] or c["poster_path"])]
+
+
+@app.get("/home/collection/{collection_id}")
+async def get_collection_movies(collection_id: int, page: int = 1):
+    data = await tmdb_get(f"/collection/{collection_id}", {"language": "uk-UA"})
+    parts = sorted(
+        data.get("parts", []),
+        key=lambda m: m.get("release_date") or "9999",
+    )
+    return {"results": parts, "total_pages": 1}
+
+
+@app.get("/home/favorite-genre/{user_id}")
+async def get_favorite_genre(user_id: int, db: Session = Depends(get_db)):
+    user_movies = db.query(models.Movie).filter(
+        models.Movie.user_id == user_id,
+        models.Movie.status != "dropped",
+    ).order_by(models.Movie.id.desc()).all()
+
+    added_ids = {m.tmdb_id for m in user_movies}
+    recent = user_movies[:10]
+
+    async def get_genres(movie):
+        try:
+            d = await tmdb_get(f"/movie/{movie.tmdb_id}", {"language": "uk-UA"})
+        except Exception:
+            return movie, []
+        return movie, d.get("genres", [])
+
+    scores = Counter()
+    names = {}
+    for movie, genres in await asyncio.gather(*[get_genres(m) for m in recent]):
+        weight = 2 if (movie.status == "favorite" or (movie.user_rating or 0) >= 7) else 1
+        for g in genres:
+            scores[g["id"]] += weight
+            names[g["id"]] = g["name"]
+
+    if scores:
+        genre_id = scores.most_common(1)[0][0]
+        genre_name = names[genre_id]
+        personalized = True
+    else:
+        genre_id, genre_name, personalized = 28, "Бойовик", False
+
+    data = await tmdb_get("/discover/movie", {
+        "language": "uk-UA",
+        "with_genres": genre_id,
+        "sort_by": "popularity.desc",
+        "page": 1,
+    })
+    results = [m for m in data.get("results", []) if m["id"] not in added_ids]
+
+    return {
+        "genre_id": genre_id,
+        "genre_name": genre_name,
+        "personalized": personalized,
+        "results": results,
+    }

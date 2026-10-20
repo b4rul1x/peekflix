@@ -75,25 +75,76 @@ class StatusUpdate(BaseModel):
 def root():
     return {"status": "Peekflix API працює"}
 
+EN_LAYOUT = "qwertyuiop[]asdfghjkl;'zxcvbnm,."
+UK_LAYOUT = "йцукенгшщзхїфівапролджєячсмитьбю"
+EN_TO_UK = str.maketrans(EN_LAYOUT, UK_LAYOUT)
+
+
+def normalize_query(q: str) -> str:
+    q = q.lower().strip()
+    q = re.sub(r"[^\w\s]", " ", q)
+    q = re.sub(r"\s+", " ", q)
+    return q.strip()
+
+
+def query_variants(q: str) -> list[str]:
+    raw = q.lower().strip()
+    normalized = normalize_query(raw)
+    variants = [normalized]
+
+    if re.fullmatch(r"[a-z\s\[\];',.]+", raw):
+        variants.append(normalize_query(raw.translate(EN_TO_UK)))
+
+    words = normalized.split()
+    if len(words) > 1:
+        variants.append(" ".join(words[:-1]))
+    if len(normalized) > 4:
+        variants.append(normalized[:-1])
+
+    return list(dict.fromkeys(v for v in variants if v))
+
+def split_year(q: str):
+    q = q.strip()
+
+    m = re.match(r"^(.+?)\s+(\d{4})$", q)
+    if m:
+        title, year = m.group(1), int(m.group(2))
+    else:
+        m = re.match(r"^(\d{4})\s+(.+)$", q)
+        if not m:
+            return q, None
+        year, title = int(m.group(1)), m.group(2)
+
+    if 1900 <= year <= date.today().year + 2:
+        return title, year
+    return q, None
+
+async def tmdb_search(query: str, year: Optional[int] = None):
+    params = {"query": query, "language": "uk-UA"}
+    if year:
+        params["primary_release_year"] = year
+    data = await tmdb_get("/search/movie", params)
+    return data.get("results", [])
+
+
 @app.get("/search")
 async def search_movies(query: str):
-    url = "https://api.themoviedb.org/3/search/movie"
-    params = {
-        "api_key": TMDB_API_KEY,
-        "query": query,
-        "language": "uk-UA",
-    }
+    title, year = split_year(query)
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params)
-        data = response.json()
+    attempts = [(v, year) for v in query_variants(title)]
+    if year:
+        attempts += [(v, None) for v in query_variants(query)]
 
-    results = sorted(
-        data["results"],
-        key=lambda movie: movie.get("popularity", 0),
-        reverse=True
-    )
-    return results[:10]
+    for text, y in attempts:
+        results = await tmdb_search(text, y)
+        if results:
+            results = sorted(
+                results,
+                key=lambda movie: movie.get("popularity", 0),
+                reverse=True,
+            )
+            return results[:10]
+    return []
 
 @app.post("/movies")
 async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):

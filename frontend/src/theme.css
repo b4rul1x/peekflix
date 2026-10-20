@@ -3415,14 +3415,15 @@ body {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .genre-chips {
+  .drag-scroll {
     cursor: grab;
   }
-  .genre-chips.is-dragging {
+  .drag-scroll.is-dragging {
     cursor: grabbing;
     user-select: none;
+    scroll-snap-type: none;
   }
-  .genre-chips.is-dragging .genre-chip {
+  .drag-scroll.is-dragging * {
     pointer-events: none;
   }
 }

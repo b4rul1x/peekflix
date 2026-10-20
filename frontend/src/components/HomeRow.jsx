@@ -1,10 +1,12 @@
 import PosterCard from "./PosterCard";
 import RowNav from "./RowNav";
 import { useRowScroll } from "../hooks/useRowScroll";
+import { useDragScroll } from "../hooks/useDragScroll";
 
 function HomeRow({ title, movies, onMovieClick, onSeeAll, getStatusIcon }) {
 
   const { ref, canLeft, canRight, update, scrollByPage } = useRowScroll([movies]);
+  useDragScroll(ref);
 
   return (
     <div className="home-row">
@@ -29,7 +31,7 @@ function HomeRow({ title, movies, onMovieClick, onSeeAll, getStatusIcon }) {
       </div>
 
       <div className="row-scroll-wrap">
-        <div className="row-scroll" ref={ref} onScroll={update}>
+        <div className="row-scroll drag-scroll" ref={ref} onScroll={update}>
           {movies.slice(0, 10).map((movie, index) => (
             <PosterCard
               key={movie.tmdb_id ?? movie.id ?? index}

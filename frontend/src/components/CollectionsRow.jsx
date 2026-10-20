@@ -1,5 +1,6 @@
 import RowNav from "./RowNav";
 import { useRowScroll } from "../hooks/useRowScroll";
+import { useDragScroll } from "../hooks/useDragScroll";
 
 const IMG_URL = "https://image.tmdb.org/t/p/w500";
 
@@ -13,6 +14,7 @@ function pluralMovies(n) {
 
 function CollectionsRow({ collections, onOpen }) {
   const { ref, canLeft, canRight, update, scrollByPage } = useRowScroll([collections]);
+  useDragScroll(ref, [collections.length > 0]);
 
   if (collections.length === 0) return null;
 
@@ -30,7 +32,7 @@ function CollectionsRow({ collections, onOpen }) {
         </div>
       </div>
 
-      <div className="collections-track" ref={ref} onScroll={update}>
+      <div className="collections-track drag-scroll" ref={ref} onScroll={update}>
         {collections.map((c) => (
           <button
             key={c.id}

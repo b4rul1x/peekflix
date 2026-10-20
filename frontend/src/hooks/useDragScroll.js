@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export function useDragScroll(ref) {
+export function useDragScroll(ref, deps = []) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -45,13 +45,17 @@ export function useDragScroll(ref) {
       }
     };
 
+    const onDragStart = (e) => e.preventDefault();
+
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("dragstart", onDragStart);
 
     return () => {
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("dragstart", onDragStart);
       onUp();
     };
-  }, []);
+  }, deps);
 }

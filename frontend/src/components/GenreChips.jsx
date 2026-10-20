@@ -9,7 +9,7 @@ function GenreChips({ onSelect }) {
   useDragScroll(ref);
 
   return (
-    <div className="genre-chips" ref={ref}>
+    <div className="genre-chips drag-scroll" ref={ref}>
       {CHIPS.map(([id, name]) => (
         <button
           key={id}

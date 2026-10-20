@@ -1,11 +1,13 @@
 import { TMDB_IMAGE_URL } from "../constants";
 import RowNav from "./RowNav";
 import { useRowScroll } from "../hooks/useRowScroll";
+import { useDragScroll } from "../hooks/useDragScroll";
 
 function Top10Row({ movies, onMovieClick, onSeeAll }) {
   const { ref, canLeft, canRight, update, scrollByPage } = useRowScroll([movies]);
 
   const top = movies.slice(0, 10);
+  useDragScroll(ref, [top.length > 0]);
   if (top.length === 0) return null;
 
   return (
@@ -30,7 +32,7 @@ function Top10Row({ movies, onMovieClick, onSeeAll }) {
           </div>
         </div>
 
-      <div className="top10-track" ref={ref} onScroll={update}>
+      <div className="top10-track drag-scroll" ref={ref} onScroll={update}>
         {top.map((movie, i) => (
           <button
             key={movie.id}

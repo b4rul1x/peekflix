@@ -1,6 +1,7 @@
-export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV
   ? 'http://127.0.0.1:8000'
-  : 'https://peekflix-api.x0ryz.dev');
+  : '');
+export const API_URL = `${API_BASE_URL.replace(/\/$/, '')}/api`;
 export const TMDB_IMAGE_URL = 'https://image.tmdb.org/t/p/w200';
 export const TMDB_PROFILE_URL = 'https://image.tmdb.org/t/p/w185';
 

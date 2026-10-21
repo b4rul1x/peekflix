@@ -3,7 +3,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import httpx
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import APIRouter, FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db, run_migrations
 from utils import fix_missing_runtimes
@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+api_router = APIRouter(prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -127,7 +128,7 @@ async def tmdb_search(query: str, year: Optional[int] = None):
     return data.get("results", [])
 
 
-@app.get("/search")
+@api_router.get("/search")
 async def search_movies(query: str):
     title, year = split_year(query)
 
@@ -146,7 +147,7 @@ async def search_movies(query: str):
             return results[:10]
     return []
 
-@app.post("/movies")
+@api_router.post("/movies")
 async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Movie).filter(
         models.Movie.tmdb_id == movie.tmdb_id,
@@ -194,7 +195,7 @@ async def add_movies(movie: MovieCreate, db: Session = Depends(get_db)):
     db.refresh(new_movie)
     return new_movie
 
-@app.patch("/movies/{movie_id}/status")
+@api_router.patch("/movies/{movie_id}/status")
 def update_movie_status(movie_id: int, status_update: StatusUpdate, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
 
@@ -206,7 +207,7 @@ def update_movie_status(movie_id: int, status_update: StatusUpdate, db: Session 
     db.refresh(movie)
     return movie
 
-@app.patch("/movies/{movie_id}/details")
+@api_router.patch("/movies/{movie_id}/details")
 def update_movie_details(movie_id: int, details: MovieDetailsUpdate, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
 
@@ -220,12 +221,12 @@ def update_movie_details(movie_id: int, details: MovieDetailsUpdate, db: Session
     db.refresh(movie)
     return movie
 
-@app.get("/movies/{user_id}")
+@api_router.get("/movies/{user_id}")
 def get_user_movies(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).all()
     return movies
 
-@app.delete("/movies/{movie_id}")
+@api_router.delete("/movies/{movie_id}")
 def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
 
@@ -236,7 +237,7 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Фільм успішно видалено"}
 
-@app.get("/movie/{tmdb_id}")
+@api_router.get("/movie/{tmdb_id}")
 async def get_movie_details(tmdb_id: int):
     async with httpx.AsyncClient() as client:
         details_response = await client.get(
@@ -319,7 +320,7 @@ async def get_movie_details(tmdb_id: int):
         "collection_name": clean_collection_name(collection["name"]) if collection else None,
     }
 
-@app.get("/movie/{tmdb_id}/similar")
+@api_router.get("/movie/{tmdb_id}/similar")
 async def get_similar_movies(tmdb_id: int):
     data = await tmdb_get(f"/movie/{tmdb_id}/recommendations", {"language": "uk-UA"})
     results = data.get("results", [])
@@ -341,7 +342,7 @@ async def get_similar_movies(tmdb_id: int):
         if movie.get("poster_path")
     ][:12]
 
-@app.get("/collection/{collection_id}")
+@api_router.get("/collection/{collection_id}")
 async def get_collection(collection_id: int):
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -369,7 +370,7 @@ async def get_collection(collection_id: int):
         ],
     }
 
-@app.get("/person/{person_id}")
+@api_router.get("/person/{person_id}")
 async def get_person(person_id: int):
     async with httpx.AsyncClient() as client:
         details_response = await client.get(
@@ -433,22 +434,22 @@ async def get_person(person_id: int):
         "directed": directed,
     }
 
-@app.get("/home/trending")
+@api_router.get("/home/trending")
 async def get_trending(page: int = 1):
     data = await tmdb_get("/trending/movie/week", {"language": "uk-UA", "page": page})
     return data
 
-@app.get("/home/top-rated")
+@api_router.get("/home/top-rated")
 async def get_top_rated(page: int = 1):
     data = await tmdb_get("/movie/top_rated", {"language": "uk-UA", "page": page})
     return data
 
-@app.get("/home/now-playing")
+@api_router.get("/home/now-playing")
 async def get_now_playing(page: int = 1):
     data = await tmdb_get("/movie/now_playing", {"language": "uk-UA", "page": page})
     return data
 
-@app.get("/home/upcoming")
+@api_router.get("/home/upcoming")
 async def get_upcoming(page: int = 1):
     today = date.today()
 
@@ -465,7 +466,7 @@ async def get_upcoming(page: int = 1):
     data["results"].sort(key=lambda m: m.get("release_date") or "9999")
     return data
 
-@app.get("/home/continue-watching/{user_id}")
+@api_router.get("/home/continue-watching/{user_id}")
 def get_continue_watching(user_id, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(
         models.Movie.user_id == user_id,
@@ -473,12 +474,12 @@ def get_continue_watching(user_id, db: Session = Depends(get_db)):
     ).all()
     return movies
 
-@app.get("/home/genres")
+@api_router.get("/home/genres")
 async def get_genres():
     data = await tmdb_get("/genre/movie/list", {"language": "uk-UA"})
     return data["genres"]
 
-@app.get("/home/by-genre")
+@api_router.get("/home/by-genre")
 async def get_by_genre(genre_id: int, page: int = 1):
     data = await tmdb_get("/discover/movie", {
         "language": "uk-UA",
@@ -488,7 +489,7 @@ async def get_by_genre(genre_id: int, page: int = 1):
     })
     return data
 
-@app.get("/home/by-filter")
+@api_router.get("/home/by-filter")
 async def get_by_filter(
     genre_id: Optional[int] = None,
     year: Optional[int] = None,
@@ -509,7 +510,7 @@ async def get_by_filter(
 
     return await tmdb_get("/discover/movie", params)
 
-@app.get("/home/recommendations/{user_id}")
+@api_router.get("/home/recommendations/{user_id}")
 async def get_recommendations(user_id: int, db: Session = Depends(get_db)):
     rated_movies = db.query(models.Movie).filter(
         models.Movie.user_id == user_id,
@@ -535,7 +536,7 @@ async def get_recommendations(user_id: int, db: Session = Depends(get_db)):
 
     return recommendations[:20]
 
-@app.get("/home/similar/{user_id}")
+@api_router.get("/home/similar/{user_id}")
 async def get_similar(user_id: int, db: Session = Depends(get_db)):
     top_movie = db.query(models.Movie).filter(
         models.Movie.user_id == user_id,
@@ -552,7 +553,7 @@ async def get_similar(user_id: int, db: Session = Depends(get_db)):
         "results": data.get("results", [])
     }
 
-@app.get("/profile/stats/{user_id}")
+@api_router.get("/profile/stats/{user_id}")
 def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).all()
 
@@ -583,7 +584,7 @@ def get_profile_stats(user_id: int, db: Session = Depends(get_db)):
         "by_status": by_status,
     }
 
-@app.get("/profile/recent/{user_id}")
+@api_router.get("/profile/recent/{user_id}")
 def get_recent_movies(user_id: int, db: Session = Depends(get_db)):
     movies = db.query(models.Movie).filter(models.Movie.user_id == user_id).order_by(models.Movie.id.desc()).limit(6).all()
     return movies
@@ -612,14 +613,14 @@ async def _load_collection_card(collection_id: int):
     return card
 
 
-@app.get("/home/collections")
+@api_router.get("/home/collections")
 async def get_featured_collections():
     ids = random.sample(FEATURED_COLLECTIONS, 10)
     cards = await asyncio.gather(*[_load_collection_card(i) for i in ids])
     return [c for c in cards if c and (c["backdrop_path"] or c["poster_path"])]
 
 
-@app.get("/home/collection/{collection_id}")
+@api_router.get("/home/collection/{collection_id}")
 async def get_collection_movies(collection_id: int, page: int = 1):
     data = await tmdb_get(f"/collection/{collection_id}", {"language": "uk-UA"})
     parts = sorted(
@@ -629,7 +630,7 @@ async def get_collection_movies(collection_id: int, page: int = 1):
     return {"results": parts, "total_pages": 1}
 
 
-@app.get("/home/favorite-genre/{user_id}")
+@api_router.get("/home/favorite-genre/{user_id}")
 async def get_favorite_genre(user_id: int, db: Session = Depends(get_db)):
     user_movies = db.query(models.Movie).filter(
         models.Movie.user_id == user_id,
@@ -675,3 +676,6 @@ async def get_favorite_genre(user_id: int, db: Session = Depends(get_db)):
         "personalized": personalized,
         "results": results,
     }
+
+
+app.include_router(api_router)

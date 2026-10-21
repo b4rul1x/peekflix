@@ -1,4 +1,5 @@
 import PosterCard from "../components/PosterCard";
+import { useRef } from "react";
 import { TMDB_PROFILE_URL } from "../constants";
 import { formatDate } from "../utils";
 
@@ -14,98 +15,123 @@ function PersonScreen({
   onMovieClick,
   getStatusIcon,
 }) {
+
+  const bioRef = useRef(null);
+  const isLongBio = (person.biography?.length ?? 0) > 300;
+
+  const hasBoth = person.directed.length > 0 && person.acted.length > 0;
+
   const movies = person[tab] ?? [];
 
   return (
-    <div>
-      <div className="detail-header">
+    <div className="detail-screen person-screen">
+      {person.profile_path && (
+        <div className="detail-backdrop">
+          <div
+            className="detail-backdrop-image"
+            style={{ backgroundImage: `url(${TMDB_PROFILE_URL}${person.profile_path})` }}
+          />
+        </div>
+      )}
+      
+      <div className="movie-topbar">
         <button className="back-button" onClick={onBack}>
           <span className="material-symbols-outlined">arrow_back</span>
           Назад
         </button>
+        <div className="movie-topbar-title">Peekflix</div>
       </div>
 
-      <div className="person-header">
-        {person.profile_path ? (
-          <img
-            className="person-photo"
-            src={`${TMDB_PROFILE_URL}${person.profile_path}`}
-            alt={person.name}
-          />
-        ) : (
-          <div className="person-photo person-photo-placeholder">
-            <span className="material-symbols-outlined">person</span>
-          </div>
-        )}
-        <div className="person-name">{person.name}</div>
-        {person.birthday && (
-          <div className="person-meta-line">
-            {formatDate(person.birthday)}
-            {person.deathday && ` — ${formatDate(person.deathday)}`}
-          </div>
-        )}
-        {person.place_of_birth && (
-          <div className="person-meta-line">{person.place_of_birth}</div>
-        )}
-      </div>
+      <div className="person-layout">
+        <div className="person-header">
+          {person.profile_path ? (
+            <img
+              className="person-photo"
+              src={`${TMDB_PROFILE_URL}${person.profile_path}`}
+              alt={person.name}
+            />
+          ) : (
+            <div className="person-photo person-photo-placeholder">
+              <span className="material-symbols-outlined">person</span>
+            </div>
+          )}
+          <div className="person-name">{person.name}</div>
+          {person.birthday && (
+            <div className="person-meta-line">
+              {formatDate(person.birthday)}
+              {person.deathday && ` — ${formatDate(person.deathday)}`}
+            </div>
+          )}
+          {person.place_of_birth && (
+            <div className="person-meta-line">{person.place_of_birth}</div>
+          )}
+        </div>
 
-      {person.biography ? (
-        <>
-          <p className={`person-bio ${bioExpanded ? 'expanded' : ''}`}>{person.biography}</p>
-          {person.biography.length > 300 && (
-            <button className="person-bio-toggle" onClick={onToggleBio}>
-              {bioExpanded ? 'Згорнути' : 'Читати далі'}
-              <span className="material-symbols-outlined">
-                {bioExpanded ? 'expand_less' : 'expand_more'}
-              </span>
+        <div className="person-main">
+          {person.biography ? (
+            <div className="overview-block">
+              <p
+                ref={bioRef}
+                className={`person-bio ${isLongBio ? 'collapsible' : ''} ${isLongBio && !bioExpanded ? 'clamped' : ''}`}
+                style={isLongBio && bioExpanded ? { maxHeight: bioRef.current?.scrollHeight } : undefined}
+              >
+                {person.biography}
+              </p>
+              {isLongBio && (
+                <button className="overview-toggle" onClick={onToggleBio}>
+                  {bioExpanded ? 'Згорнути' : 'Читати далі'}
+                  <span className="material-symbols-outlined">
+                    {bioExpanded ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="placeholder-text">Біографія відсутня</p>
+          )}
+
+          <div className="person-section-title">Фільмографія</div>
+          <div className={`person-tabs ${hasBoth ? 'has-slider' : ''}`}>
+            {hasBoth && (
+              <div className={`person-tab-slider ${tab === 'acted' ? 'right' : ''}`} />
+            )}
+            {person.directed.length > 0 && (
+              <button
+                className={`person-tab ${tab === 'directed' ? 'active' : ''}`}
+                onClick={() => onTabChange('directed')}
+              >
+                Режисер ({person.directed.length})
+              </button>
+            )}
+            {person.acted.length > 0 && (
+              <button
+                className={`person-tab ${tab === 'acted' ? 'active' : ''}`}
+                onClick={() => onTabChange('acted')}
+              >
+                Актор ({person.acted.length})
+              </button>
+            )}
+          </div>
+
+          <div key={tab} className="expanded-grid person-grid-anim">
+            {movies.slice(0, visibleCount).map((movie) => (
+              <PosterCard
+                key={movie.tmdb_id}
+                movie={movie}
+                onClick={() => onMovieClick(movie)}
+                statusIcon={getStatusIcon(movie)}
+              />
+            ))}
+          </div>
+
+          {movies.length > visibleCount && (
+            <button className="person-show-more" onClick={onShowMore}>
+              Показати ще ({movies.length - visibleCount})
+              <span className="material-symbols-outlined">expand_more</span>
             </button>
           )}
-        </>
-      ) : (
-        <p className="placeholder-text">Біографія відсутня</p>
-      )}
-
-      <div className="person-divider" />
-      <div className="person-section-title">Фільмографія</div>
-      <div className="person-tabs">
-        {person.directed.length > 0 && (
-          <button
-            className={`person-tab ${tab === 'directed' ? 'active' : ''}`}
-            onClick={() => onTabChange('directed')}
-          >
-            Режисер ({person.directed.length})
-          </button>
-        )}
-        {person.acted.length > 0 && (
-          <button
-            className={`person-tab ${tab === 'acted' ? 'active' : ''}`}
-            onClick={() => onTabChange('acted')}
-          >
-            Актор ({person.acted.length})
-          </button>
-        )}
+        </div>
       </div>
-
-      <div className="expanded-grid">
-        {movies.slice(0, visibleCount).map((movie) => (
-          <PosterCard
-            key={movie.tmdb_id}
-            movie={movie}
-            onClick={() => onMovieClick(movie)}
-            statusIcon={getStatusIcon(movie)}
-          />
-        ))}
-      </div>
-
-      {movies.length > visibleCount && (
-        <button
-          className="row-see-all"
-          style={{ margin: '16px auto', display: 'block' }}
-          onClick={onShowMore}
-        >
-          Показати ще
-        </button>
-      )}
     </div>
   );
 }

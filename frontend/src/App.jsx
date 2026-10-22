@@ -41,6 +41,7 @@ function App() {
   const [expandedLoading, setExpandedLoading] = useState(false);
   const [expandedScrollPosition, setExpandedScrollPosition] = useState(0);
   const previousMovieIdRef = useRef(null);
+  const personScrollRef = useRef(0);
 
   const [genreMovies, setGenreMovies] = useState([]);
   const [genreInfo, setGenreInfo] = useState({ id: GENRE.id, title: GENRE.title });
@@ -117,6 +118,9 @@ function App() {
       previousMovieIdRef.current = null;
       if (expandedCategory && !selectedPerson) {
         window.scrollTo(0, expandedScrollPosition);
+      }
+      if (selectedPerson) {
+        window.scrollTo(0, personScrollRef.current);
       }
     }
   }, [selectedMovie, expandedCategory]);
@@ -445,6 +449,9 @@ function App() {
     );
     setPersonBioExpanded(false);
     setPersonVisibleCount(20);
+    personScrollRef.current = 0;
+    setSelectedMovie(null);
+    setSelectedPerson(data);
     setSelectedMovie(null);
     setSelectedPerson(data);
   };
@@ -547,6 +554,16 @@ function App() {
     return null;
   };
 
+  const handleSetStatus = (movie, status) => {
+    const tmdbId = movie.tmdb_id ?? movie.id;
+    const record = myMovies.find((m) => m.tmdb_id === tmdbId);
+    if (record) {
+      handleChangeStatus(record.id, status);
+    } else {
+      handleAddMovie(movie, status);
+    }
+  };
+
   const addedIds = myMovies.map((movie) => movie.tmdb_id);
 
   return (
@@ -580,8 +597,12 @@ function App() {
           visibleCount={personVisibleCount}
           onShowMore={() => setPersonVisibleCount((c) => c + 20)}
           onBack={handleClosePerson}
-          onMovieClick={(movie) => handleOpenDetails(movie.tmdb_id)}
+          onMovieClick={(movie) => {
+            personScrollRef.current = window.scrollY;
+            handleOpenDetails(movie.tmdb_id);
+          }}
           getStatusIcon={getMovieStatusIcon}
+          onSetStatus={handleSetStatus}
         />
       ) : expandedCategory ? (
         <ExpandedScreen

@@ -1,5 +1,5 @@
 import PosterCard from "../components/PosterCard";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { TMDB_PROFILE_URL } from "../constants";
 import { formatDate } from "../utils";
 
@@ -14,9 +14,20 @@ function PersonScreen({
   onBack,
   onMovieClick,
   getStatusIcon,
+  onSetStatus,
 }) {
 
   const bioRef = useRef(null);
+
+  const [openStatusId, setOpenStatusId] = useState(null);
+
+  useEffect(() => {
+    if (openStatusId === null) return;
+    const close = () => setOpenStatusId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openStatusId]);
+
   const isLongBio = (person.biography?.length ?? 0) > 300;
 
   const hasBoth = person.directed.length > 0 && person.acted.length > 0;
@@ -120,6 +131,16 @@ function PersonScreen({
                 movie={movie}
                 onClick={() => onMovieClick(movie)}
                 statusIcon={getStatusIcon(movie)}
+                onStatusSelect={(status) => {
+                  onSetStatus(movie, status);
+                  setOpenStatusId(null);
+                }}
+                statusMenuOpen={openStatusId === movie.tmdb_id}
+                onStatusMenuToggle={() =>
+                  setOpenStatusId((prev) =>
+                    prev === movie.tmdb_id ? null : movie.tmdb_id
+                  )
+                }
               />
             ))}
           </div>

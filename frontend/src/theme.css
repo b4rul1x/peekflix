@@ -705,6 +705,14 @@ body {
   text-align: center;
 }
 
+.poster-card.menu-open {
+  z-index: 20;
+}
+
+.poster-menu-trigger.has-status {
+  color: var(--accent);
+}
+
 .search-dropdown {
   position: absolute;
   top: calc(100% + 6px);
